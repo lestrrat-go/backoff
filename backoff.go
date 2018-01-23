@@ -25,8 +25,10 @@ func (b *baseBackoff) cancelLocked() {
 
 // note: caller must lock
 func (b *baseBackoff) cancel() {
-	close(b.next)
-	b.next = nil
+	if b.next != nil {
+		close(b.next)
+		b.next = nil
+	}
 	b.cancelFunc()
 }
 
