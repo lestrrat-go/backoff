@@ -37,6 +37,7 @@ func NewExponential(options ...Option) *Exponential {
 		interval:     interval,
 		jitterFactor: jitterFactor,
 		maxRetries:   maxRetries,
+		random:       rand.New(rand.NewSource(time.Now().UnixNano())),
 		threshold:    threshold,
 	}
 }
@@ -65,7 +66,7 @@ func (b *exponentialBackoff) delayForAttempt(attempt float64) time.Duration {
 		jitteredMin := durf - jitterDelta
 		jitteredMax := durf + jitterDelta
 
-		durf = jitteredMin + rand.Float64()*(jitteredMax-jitteredMin+1)
+		durf = jitteredMin + b.policy.random.Float64()*(jitteredMax-jitteredMin+1)
 	}
 
 	dur := time.Duration(durf)

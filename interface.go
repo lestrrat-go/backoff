@@ -2,6 +2,7 @@ package backoff
 
 import (
 	"context"
+	"math/rand"
 	"sync"
 	"time"
 )
@@ -50,11 +51,11 @@ type constantBackoff struct {
 
 // Exponential implements an exponential backoff policy.
 type Exponential struct {
-	// next = interval * (value in [1 - jitterFactor, 1 + jitterFactor])
 	factor       float64
 	interval     time.Duration
 	jitterFactor float64
 	maxRetries   int
+	random       *rand.Rand
 	threshold    time.Duration // max backoff
 }
 
