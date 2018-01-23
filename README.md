@@ -6,9 +6,15 @@ Backoff algorithm and helpers for Go
 
 ```go
 
+import "github.com/lestrrat/go-backoff"
+
 func Func(arg Foo) (Result, error) { ... }
 
-var policy = backoff.NewExponential()
+var policy = backoff.NewExponential(
+  backoff.WithInterval(500*time.Millisecond), // base interval
+  backoff.WithJitterFactor(0.05), // 5% jitter
+  backoff.WithMaxRetries(25),
+)
 func RetryFunc(arg Foo) (Result, error) {
   b := policy.Start(context.Background())
   for {
@@ -32,8 +38,10 @@ func RetryFunc(arg Foo) (Result, error) {
 
 # DESCRIPTION
 
-* Works well with context.Context
-* Does not require closures
+This library is an implementation of backoff algorithm for retrying operations
+in an idiomatic Go way. It respects `context.Context` natively, and the critical
+notifications are done through channel operations, allowing you greater
+flexibility in how you wrap your operations
 
 # PRIOR ARTS
 
