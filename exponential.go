@@ -21,6 +21,8 @@ func NewExponential(options ...Option) *Exponential {
 	factor := float64(2)
 	for _, o := range options {
 		switch o.Name() {
+		case optkeyFactor:
+			factor = o.Value().(float64)
 		case optkeyInterval:
 			interval = o.Value().(time.Duration)
 		case optkeyJitterFactor:

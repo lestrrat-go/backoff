@@ -10,6 +10,13 @@ type option struct {
 func (o option) Name() string       { return o.name }
 func (o option) Value() interface{} { return o.value }
 
+func WithFactor(v float64) Option {
+	return &option{
+		name:  optkeyFactor,
+		value: v,
+	}
+}
+
 func WithInterval(v time.Duration) Option {
 	return &option{
 		name:  optkeyInterval,

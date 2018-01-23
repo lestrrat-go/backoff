@@ -8,6 +8,7 @@ import (
 )
 
 const (
+	optkeyFactor       = "factor"
 	optkeyInterval     = "interval"
 	optkeyJitterFactor = "jitter-factor"
 	optkeyMaxRetries   = "max-retries"
