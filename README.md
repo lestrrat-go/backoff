@@ -16,7 +16,9 @@ var policy = backoff.NewExponential(
   backoff.WithMaxRetries(25),
 )
 func RetryFunc(arg Foo) (Result, error) {
-  b := policy.Start(context.Background())
+  b, cancel := policy.Start(context.Background())
+  defer cancel()
+
   for {
     res, err := Func(arg)
     if err == nil {
