@@ -3,6 +3,7 @@ package backoff
 import (
 	"context"
 	"math"
+	"math/rand"
 	"time"
 )
 
@@ -42,8 +43,8 @@ func NewExponential(options ...Option) *Exponential {
 
 func (p *Exponential) Start(ctx context.Context) (Backoff, CancelFunc) {
 	b := &exponentialBackoff{
-		baseBackoff:  newBaseBackoff(ctx, p.maxRetries),
-		policy: p,
+		baseBackoff: newBaseBackoff(ctx, p.maxRetries),
+		policy:      p,
 	}
 
 	return b, CancelFunc(b.cancelLocked)
@@ -59,8 +60,14 @@ func (b *exponentialBackoff) Next() <-chan struct{} {
 func (b *exponentialBackoff) delayForAttempt(attempt float64) time.Duration {
 	minf := float64(b.policy.interval)
 	durf := minf * math.Pow(b.policy.factor, attempt)
+	if b.policy.jitterFactor > 0 {
+		jitterDelta := durf * b.policy.jitterFactor
+		jitteredMin := durf - jitterDelta
+		jitteredMax := durf + jitterDelta
+
+		durf = jitteredMin + rand.Float64()*(jitteredMax-jitteredMin+1)
+	}
 
 	dur := time.Duration(durf)
-
 	return dur
 }
