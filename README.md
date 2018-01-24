@@ -56,3 +56,16 @@ it essentially forces you to create a closure over the operation to be retried.
 
 This library is a very simple implementation of calculating backoff durations.
 I wanted it to let me know when to stop too, so it was missing a few things.
+
+# DUMB BENCHMARK
+
+```
+go test -run=none -bench . -tags bench -benchmem -benchtime 20s
+goos: darwin
+goarch: amd64
+pkg: github.com/lestrrat/go-backoff
+Benchmark/cenkalti-4         	       5	6390580465 ns/op	    1171 B/op	      24 allocs/op
+Benchmark/lestrrat-4         	       5	5077630205 ns/op	    1059 B/op	      21 allocs/op
+PASS
+ok  	github.com/lestrrat/go-backoff	102.885s
+```
