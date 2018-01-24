@@ -38,12 +38,38 @@ func RetryFunc(arg Foo) (Result, error) {
 }
 ```
 
+## Simple Usage
+
+```go
+func ExampleRetry() {
+  count := 0
+  e := backoff.ExecuteFunc(func(_ context.Context) error {
+    // This is a silly example that succeeds on every 10th try
+    count++
+    if count%10 == 0 {
+      return nil
+    }
+    return errors.New(`dummy`)
+  })
+
+  ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+  defer cancel()
+
+  p := backoff.NewExponential()
+  if err := backoff.Retry(ctx, p, e); err != nil {
+    log.Printf("failed to call function after repeated tries")
+  }
+}
+```
+
 # DESCRIPTION
 
 This library is an implementation of backoff algorithm for retrying operations
 in an idiomatic Go way. It respects `context.Context` natively, and the critical
 notifications are done through channel operations, allowing you greater
-flexibility in how you wrap your operations
+flexibility in how you wrap your operations.
+
+It also exports a utility function `Retry`, for simple operations.
 
 # PRIOR ARTS
 

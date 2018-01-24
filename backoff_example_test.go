@@ -3,6 +3,7 @@ package backoff_test
 import (
 	"context"
 	"errors"
+	"log"
 	"time"
 
 	backoff "github.com/lestrrat/go-backoff"
@@ -46,4 +47,24 @@ func Example() {
 	}
 
 	retryFunc(15)
+}
+
+func ExampleRetry() {
+	count := 0
+	e := backoff.ExecuteFunc(func(_ context.Context) error {
+		// This is a silly example that succeeds on every 10th try
+		count++
+		if count%10 == 0 {
+			return nil
+		}
+		return errors.New(`dummy`)
+	})
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	p := backoff.NewExponential()
+	if err := backoff.Retry(ctx, p, e); err != nil {
+		log.Printf("failed to call function after repeated tries")
+	}
 }
