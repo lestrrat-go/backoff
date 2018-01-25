@@ -2,7 +2,6 @@ package backoff
 
 import (
 	"context"
-	"log"
 	"math"
 	"math/rand"
 	"time"
@@ -67,6 +66,5 @@ func (b *exponentialBackoff) delayForAttempt(attempt float64) time.Duration {
 	}
 
 	dur := time.Duration(durf)
-	log.Printf("%s", dur)
 	return dur
 }
