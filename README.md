@@ -75,6 +75,8 @@ flexibility in how you wrap your operations.
 
 It also exports a utility function `Retry`, for simple operations.
 
+For a longer discussion, [please read this article](https://medium.com/@lestrrat/yak-shaving-with-backoff-libraries-in-go-80240f0aa30c)
+
 # PRIOR ARTS
 
 ## [github.com/cenkalti/backoff](https://github.com/cenkalti/backoff) 
