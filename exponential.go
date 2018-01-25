@@ -10,6 +10,7 @@ import (
 func NewExponential(options ...Option) *Exponential {
 	interval := defaultInterval
 	jitterFactor := defaultJitterFactor
+	maxInterval := defaultMaxInterval
 	maxRetries := defaultMaxRetries
 	threshold := defaultThreshold
 	factor := float64(2)
@@ -21,6 +22,8 @@ func NewExponential(options ...Option) *Exponential {
 			interval = o.Value().(time.Duration)
 		case optkeyJitterFactor:
 			jitterFactor = o.Value().(float64)
+		case optkeyMaxInterval:
+			maxInterval = float64(o.Value().(float64))
 		case optkeyMaxRetries:
 			maxRetries = o.Value().(int)
 		case optkeyThreshold:
@@ -32,6 +35,7 @@ func NewExponential(options ...Option) *Exponential {
 		factor:       factor,
 		interval:     interval,
 		jitterFactor: jitterFactor,
+		maxInterval:  maxInterval,
 		maxRetries:   maxRetries,
 		random:       rand.New(rand.NewSource(time.Now().UnixNano())),
 		threshold:    threshold,
@@ -63,6 +67,10 @@ func (b *exponentialBackoff) delayForAttempt(attempt float64) time.Duration {
 		jitteredMax := durf + jitterDelta
 
 		durf = jitteredMin + b.policy.random.Float64()*(jitteredMax-jitteredMin+1)
+	}
+
+	if maxf := b.policy.maxInterval; maxf > 0 && durf > maxf {
+		durf = maxf
 	}
 
 	dur := time.Duration(durf)

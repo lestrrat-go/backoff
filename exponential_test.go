@@ -9,7 +9,11 @@ import (
 )
 
 func TestExponential(t *testing.T) {
-	p := NewExponential(WithInterval(time.Second), WithJitterFactor(0))
+	p := NewExponential(
+		WithInterval(time.Second),
+		WithJitterFactor(0),
+		WithMaxInterval(120*time.Second),
+	)
 	b, cancel := p.Start(context.Background())
 	defer cancel()
 
@@ -22,9 +26,9 @@ func TestExponential(t *testing.T) {
 		16 * time.Second,
 		32 * time.Second,
 		64 * time.Second,
-		128 * time.Second,
-		256 * time.Second,
-		512 * time.Second,
+		120 * time.Second,
+		120 * time.Second,
+		120 * time.Second,
 	}
 	for i := 0; i < 10; i++ {
 		dur := b.(*exponentialBackoff).delayForAttempt(float64(i))
@@ -36,7 +40,11 @@ func TestExponential(t *testing.T) {
 
 func TestExponentialWithJitter(t *testing.T) {
 	const jitter = 0.2
-	p := NewExponential(WithInterval(time.Second), WithJitterFactor(jitter))
+	p := NewExponential(
+		WithInterval(time.Second),
+		WithJitterFactor(jitter),
+		WithMaxInterval(time.Hour),
+	)
 	b, cancel := p.Start(context.Background())
 	defer cancel()
 

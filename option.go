@@ -31,6 +31,21 @@ func WithJitterFactor(v float64) Option {
 	}
 }
 
+// WithMaxInterval specifies the maximum interval between retries, and is
+// currently only applicable to exponential backoffs.
+//
+// By default this is capped at 2 minutes. If you would like to change this
+// value, you must explicitly specify it through this option.
+//
+// If a value of 0 is specified, then there is no limit, and the backoff
+// interval will keep increasing.
+func WithMaxInterval(v time.Duration) Option {
+	return &option{
+		name:  optkeyMaxInterval,
+		value: float64(v),
+	}
+}
+
 // WithMaxRetries specifies the maximum number of attempts that can be made
 // by the backoff policies. By default each policy tries up to 10 times.
 //

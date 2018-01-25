@@ -11,6 +11,7 @@ const (
 	optkeyFactor       = "factor"
 	optkeyInterval     = "interval"
 	optkeyJitterFactor = "jitter-factor"
+	optkeyMaxInterval  = "max-interval"
 	optkeyMaxRetries   = "max-retries"
 	optkeyThreshold    = "threshold"
 )
@@ -18,6 +19,7 @@ const (
 const (
 	defaultInterval     = 500 * time.Millisecond
 	defaultJitterFactor = 0.5
+	defaultMaxInterval  = float64(2 * time.Minute)
 	defaultMaxRetries   = 10
 	defaultThreshold    = 15 * time.Minute
 )
@@ -62,6 +64,7 @@ type Exponential struct {
 	factor       float64
 	interval     time.Duration
 	jitterFactor float64
+	maxInterval  float64
 	maxRetries   int
 	random       *rand.Rand
 	threshold    time.Duration // max backoff
