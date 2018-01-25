@@ -31,6 +31,11 @@ func WithJitterFactor(v float64) Option {
 	}
 }
 
+// WithMaxRetries specifies the maximum number of attempts that can be made
+// by the backoff policies. By default each policy tries up to 10 times.
+//
+// If you would like to retry forever, specify "0" and pass to the constructor
+// of each policy.
 func WithMaxRetries(v int) Option {
 	return &option{
 		name:  optkeyMaxRetries,

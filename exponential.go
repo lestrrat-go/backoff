@@ -2,21 +2,16 @@ package backoff
 
 import (
 	"context"
+	"log"
 	"math"
 	"math/rand"
 	"time"
 )
 
-const (
-	defaultInterval     = 500 * time.Millisecond
-	defaultJitterFactor = 0.5
-	defaultThreshold    = 15 * time.Minute
-)
-
 func NewExponential(options ...Option) *Exponential {
 	interval := defaultInterval
 	jitterFactor := defaultJitterFactor
-	maxRetries := -1
+	maxRetries := defaultMaxRetries
 	threshold := defaultThreshold
 	factor := float64(2)
 	for _, o := range options {
@@ -72,5 +67,6 @@ func (b *exponentialBackoff) delayForAttempt(attempt float64) time.Duration {
 	}
 
 	dur := time.Duration(durf)
+	log.Printf("%s", dur)
 	return dur
 }

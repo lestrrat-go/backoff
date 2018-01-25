@@ -15,6 +15,13 @@ const (
 	optkeyThreshold    = "threshold"
 )
 
+const (
+	defaultInterval     = 500 * time.Millisecond
+	defaultJitterFactor = 0.5
+	defaultMaxRetries   = 10
+	defaultThreshold    = 15 * time.Minute
+)
+
 type CancelFunc func()
 
 type Policy interface {

@@ -6,7 +6,7 @@ import (
 )
 
 func NewConstant(delay time.Duration, options ...Option) *Constant {
-	maxRetries := -1
+	maxRetries := defaultMaxRetries
 	for _, o := range options {
 		switch o.Name() {
 		case optkeyMaxRetries:
