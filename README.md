@@ -2,6 +2,10 @@
 
 Backoff algorithm and helpers for Go
 
+[![Build Status](https://travis-ci.org/lestrrat/go-backoff.png?branch=master)](https://travis-ci.org/lestrrat/go-backoff)
+
+[![GoDoc](https://godoc.org/github.com/lestrrat/go-backoff?status.svg)](https://godoc.org/github.com/lestrrat/go-backoff)
+
 # SYNOPSIS
 
 ```go
