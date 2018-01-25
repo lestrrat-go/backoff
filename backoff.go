@@ -46,7 +46,10 @@ func IsPermanentError(err error) bool {
 	if perr, ok := err.(PermanentError); ok {
 		return perr.IsPermanent()
 	}
-	return IsPermanentError(errors.Cause(err))
+	if cerr := errors.Cause(err); cerr != err {
+		return IsPermanentError(cerr)
+	}
+	return false
 }
 
 // Retry is a convenience wrapper around the backoff algorithm. If your target
