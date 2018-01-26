@@ -92,12 +92,13 @@ I wanted it to let me know when to stop too, so it was missing a few things.
 # DUMB BENCHMARK
 
 ```
-go test -run=none -bench . -tags bench -benchmem -benchtime 20s
+make benchmark
+go test -run=none -tags bench -bench . -benchmem -benchtime 20s
 goos: darwin
 goarch: amd64
 pkg: github.com/lestrrat/go-backoff
-Benchmark/cenkalti-4         	       5	6390580465 ns/op	    1171 B/op	      24 allocs/op
-Benchmark/lestrrat-4         	       5	5077630205 ns/op	    1059 B/op	      21 allocs/op
+Benchmark/cenkalti-4         	       3	6828914804 ns/op	    1205 B/op	      24 allocs/op
+Benchmark/lestrrat-4         	       5	4842358461 ns/op	    1022 B/op	      20 allocs/op
 PASS
-ok  	github.com/lestrrat/go-backoff	102.885s
+ok  	github.com/lestrrat/go-backoff	70.711s
 ```

@@ -4,6 +4,7 @@ import (
 	"context"
 	"math"
 	"math/rand"
+	"sync"
 	"time"
 )
 
@@ -42,13 +43,32 @@ func NewExponential(options ...Option) *Exponential {
 	}
 }
 
-func (p *Exponential) Start(ctx context.Context) (Backoff, CancelFunc) {
-	b := &exponentialBackoff{
-		baseBackoff: newBaseBackoff(ctx, p.maxRetries),
-		policy:      p,
-	}
+var exponentialBackoffPool = sync.Pool{
+	New: func() interface{} {
+		return &exponentialBackoff{}
+	},
+}
 
-	return b, CancelFunc(b.cancelLocked)
+func getExponentialBackoff() *exponentialBackoff {
+	return exponentialBackoffPool.Get().(*exponentialBackoff)
+}
+
+func releaseExponentialBackoff(b *exponentialBackoff) {
+	b.baseBackoff = nil
+	b.policy = nil
+	exponentialBackoffPool.Put(b)
+}
+
+func (p *Exponential) Start(ctx context.Context) (Backoff, CancelFunc) {
+	b := getExponentialBackoff()
+	b.baseBackoff = newBaseBackoff(ctx, p.maxRetries)
+	b.policy = p
+	b.attempt = 0
+
+	return b, CancelFunc(func() {
+		b.cancelLocked()
+		releaseExponentialBackoff(b)
+	})
 }
 
 func (b *exponentialBackoff) Next() <-chan struct{} {
