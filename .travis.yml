@@ -1,7 +1,9 @@
 language: go
 sudo: false
 install: go get -t -v 
-script: go test ./...
+script:
+  - go test ./...
+  - go test -race -count
 go:
   - 1.9.x
   - tip

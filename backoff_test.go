@@ -93,3 +93,45 @@ func TestRetryExponentialParallel(t *testing.T) {
 		cancel() // okay, now we can cancel
 	}()
 }
+
+func TestGHIssue1(t *testing.T) {
+	makeOptions := func(options ...backoff.Option) []backoff.Option {
+		var newOptions []backoff.Option
+
+		newOptions = append(newOptions, backoff.WithInterval(10*time.Millisecond))
+		newOptions = append(newOptions, backoff.WithMaxRetries(1))
+		newOptions = append(newOptions, options...)
+		return newOptions
+	}
+
+	run := func(ctx context.Context, options ...backoff.Option) {
+		policy := backoff.NewExponential(options...)
+		b, cancel := policy.Start(ctx)
+		defer cancel()
+
+		for {
+			select {
+			case <-b.Done():
+				return
+			case <-b.Next():
+			}
+		}
+	}
+
+	tests := []struct {
+		options []backoff.Option
+	}{
+		{
+			options: makeOptions(),
+		},
+		{
+			options: makeOptions(backoff.WithMaxRetries(20)),
+		},
+	}
+
+	for _, test := range tests {
+		ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+		run(ctx, test.options...)
+		cancel()
+	}
+}
