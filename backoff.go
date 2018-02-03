@@ -108,6 +108,12 @@ func (b *baseBackoff) cancel() {
 	b.cancelFunc()
 }
 
+func (b *baseBackoff) nextLocked() <-chan struct{} {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.next
+}
+
 func (b *baseBackoff) fire() {
 	select {
 	case <-b.ctx.Done():
