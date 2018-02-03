@@ -75,7 +75,8 @@ func (b *exponentialBackoff) Next() <-chan struct{} {
 	d := b.delayForAttempt(b.attempt)
 	b.attempt++
 	time.AfterFunc(d, b.fire)
-	return b.next
+
+	return b.nextLocked()
 }
 
 func (b *exponentialBackoff) delayForAttempt(attempt float64) time.Duration {
