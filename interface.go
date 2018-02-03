@@ -50,7 +50,7 @@ type baseBackoff struct {
 	cancelFunc context.CancelFunc
 	ctx        context.Context
 	maxRetries int
-	mu         sync.Mutex
+	mu         sync.RWMutex
 	next       chan struct{}
 }
 
