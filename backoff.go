@@ -96,8 +96,8 @@ func (b *baseBackoff) Done() <-chan struct{} {
 }
 
 func (b *baseBackoff) cancelLocked() {
-	b.mu.RLock()
-	defer b.mu.RUnlock()
+	b.mu.Lock()
+	defer b.mu.Unlock()
 
 	b.cancel()
 }
