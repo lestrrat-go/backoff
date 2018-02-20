@@ -36,5 +36,5 @@ func (p *Constant) Start(ctx context.Context) (Backoff, CancelFunc) {
 
 func (b *constantBackoff) Next() <-chan struct{} {
 	time.AfterFunc(b.policy.delay, b.fire)
-	return b.next
+	return b.nextLocked()
 }
