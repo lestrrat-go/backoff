@@ -135,3 +135,29 @@ func TestGHIssue1(t *testing.T) {
 		cancel()
 	}
 }
+
+func TestMaxElapsedTime(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	policy := backoff.NewConstant(100*time.Millisecond, backoff.WithMaxElapsedTime(time.Second))
+	b, bcancel := policy.Start(ctx)
+	defer bcancel()
+
+	var count int
+LOOP:
+	for {
+		select {
+		case <-b.Next():
+			count++
+		case <-b.Done():
+			break LOOP
+		case <-ctx.Done():
+			t.Errorf("context expired before backoff")
+			return
+		}
+	}
+	if !assert.True(t, count > 5, "we should have at least a few iterations") {
+		return
+	}
+}

@@ -57,3 +57,12 @@ func WithMaxRetries(v int) Option {
 		value: v,
 	}
 }
+
+// WithMaxElapsedTime specifies the maximum amount of accumulative time that
+// the backoff is allowed to wait before it is considered failed.
+func WithMaxElapsedTime(v time.Duration) Option{
+	return &option{
+		name: optkeyMaxElapsedTime,
+		value: v,
+	}
+}

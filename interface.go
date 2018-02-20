@@ -8,12 +8,13 @@ import (
 )
 
 const (
-	optkeyFactor       = "factor"
-	optkeyInterval     = "interval"
-	optkeyJitterFactor = "jitter-factor"
-	optkeyMaxInterval  = "max-interval"
-	optkeyMaxRetries   = "max-retries"
-	optkeyThreshold    = "threshold"
+	optkeyFactor         = "factor"
+	optkeyInterval       = "interval"
+	optkeyJitterFactor   = "jitter-factor"
+	optkeyMaxElapsedTime = "max-elapsed-time"
+	optkeyMaxInterval    = "max-interval"
+	optkeyMaxRetries     = "max-retries"
+	optkeyThreshold      = "threshold"
 )
 
 const (
@@ -36,8 +37,9 @@ type Backoff interface {
 }
 
 type Constant struct {
-	delay      time.Duration
-	maxRetries int
+	delay          time.Duration
+	maxElapsedTime time.Duration
+	maxRetries     int
 }
 
 type Option interface {
@@ -46,12 +48,14 @@ type Option interface {
 }
 
 type baseBackoff struct {
-	callCount  int
-	cancelFunc context.CancelFunc
-	ctx        context.Context
-	maxRetries int
-	mu         sync.RWMutex
-	next       chan struct{}
+	callCount      int
+	cancelFunc     context.CancelFunc
+	ctx            context.Context
+	maxElapsedTime time.Duration
+	maxRetries     int
+	mu             sync.RWMutex
+	startTime      time.Time
+	next           chan struct{}
 }
 
 type constantBackoff struct {
@@ -61,13 +65,14 @@ type constantBackoff struct {
 
 // Exponential implements an exponential backoff policy.
 type Exponential struct {
-	factor       float64
-	interval     time.Duration
-	jitterFactor float64
-	maxInterval  float64
-	maxRetries   int
-	random       *rand.Rand
-	threshold    time.Duration // max backoff
+	factor         float64
+	interval       time.Duration
+	jitterFactor   float64
+	maxElapsedTime time.Duration
+	maxInterval    float64
+	maxRetries     int
+	random         *rand.Rand
+	threshold      time.Duration // max backoff
 }
 
 type exponentialBackoff struct {

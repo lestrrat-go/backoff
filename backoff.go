@@ -2,6 +2,7 @@ package backoff
 
 import (
 	"context"
+	"time"
 
 	"github.com/pkg/errors"
 )
@@ -78,13 +79,15 @@ func Retry(ctx context.Context, p Policy, e Executer) error {
 	}
 }
 
-func newBaseBackoff(ctx context.Context, maxRetries int) *baseBackoff {
+func newBaseBackoff(ctx context.Context, maxRetries int, maxElapsedTime time.Duration) *baseBackoff {
 	backoffCtx, cancel := context.WithCancel(ctx)
 	return &baseBackoff{
-		cancelFunc: cancel,
-		ctx:        backoffCtx,
-		maxRetries: maxRetries,
-		next:       make(chan struct{}),
+		cancelFunc:     cancel,
+		ctx:            backoffCtx,
+		maxElapsedTime: maxElapsedTime,
+		maxRetries:     maxRetries,
+		next:           make(chan struct{}),
+		startTime:      time.Now(),
 	}
 }
 
@@ -128,11 +131,25 @@ func (b *baseBackoff) fire() {
 	}
 
 	b.next <- struct{}{}
+
 	if b.maxRetries > 0 {
 		if b.maxRetries <= b.callCount {
 			b.cancel()
 		} else {
 			b.callCount++
 		}
+	}
+}
+
+func (b *baseBackoff) Start(ctx context.Context) {
+	if v := b.maxElapsedTime; v > 0 {
+		go func() {
+			select {
+			case <-time.After(v):
+				b.cancel()
+			case <-ctx.Done():
+				return
+			}
+		}()
 	}
 }

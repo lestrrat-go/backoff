@@ -7,24 +7,29 @@ import (
 
 func NewConstant(delay time.Duration, options ...Option) *Constant {
 	maxRetries := defaultMaxRetries
+	var maxElapsedTime time.Duration
 	for _, o := range options {
 		switch o.Name() {
+		case optkeyMaxElapsedTime:
+			maxElapsedTime = o.Value().(time.Duration)
 		case optkeyMaxRetries:
 			maxRetries = o.Value().(int)
 		}
 	}
 
 	return &Constant{
-		delay:      delay,
-		maxRetries: maxRetries,
+		delay:          delay,
+		maxElapsedTime: maxElapsedTime,
+		maxRetries:     maxRetries,
 	}
 }
 
 func (p *Constant) Start(ctx context.Context) (Backoff, CancelFunc) {
 	b := &constantBackoff{
-		baseBackoff: newBaseBackoff(ctx, p.maxRetries),
+		baseBackoff: newBaseBackoff(ctx, p.maxRetries, p.maxElapsedTime),
 		policy:      p,
 	}
+	b.baseBackoff.Start(ctx)
 
 	return b, CancelFunc(b.cancelLocked)
 }
