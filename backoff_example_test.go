@@ -6,7 +6,7 @@ import (
 	"log"
 	"time"
 
-	backoff "github.com/lestrrat/go-backoff"
+	backoff "github.com/lestrrat-go/backoff"
 )
 
 func Example() {

@@ -2,15 +2,15 @@
 
 Backoff algorithm and helpers for Go
 
-[![Build Status](https://travis-ci.org/lestrrat/go-backoff.png?branch=master)](https://travis-ci.org/lestrrat/go-backoff)
+[![Build Status](https://travis-ci.org/lestrrat-go/backoff.png?branch=master)](https://travis-ci.org/lestrrat-go/backoff)
 
-[![GoDoc](https://godoc.org/github.com/lestrrat/go-backoff?status.svg)](https://godoc.org/github.com/lestrrat/go-backoff)
+[![GoDoc](https://godoc.org/github.com/lestrrat-go/backoff?status.svg)](https://godoc.org/github.com/lestrrat-go/backoff)
 
 # SYNOPSIS
 
 ```go
 
-import "github.com/lestrrat/go-backoff"
+import "github.com/lestrrat-go/backoff"
 
 func Func(arg Foo) (Result, error) { ... }
 
@@ -100,9 +100,9 @@ make benchmark
 go test -run=none -tags bench -bench . -benchmem -benchtime 20s
 goos: darwin
 goarch: amd64
-pkg: github.com/lestrrat/go-backoff
+pkg: github.com/lestrrat-go/backoff
 Benchmark/cenkalti-4         	       3	6828914804 ns/op	    1205 B/op	      24 allocs/op
 Benchmark/lestrrat-4         	       5	4842358461 ns/op	    1022 B/op	      20 allocs/op
 PASS
-ok  	github.com/lestrrat/go-backoff	70.711s
+ok  	github.com/lestrrat-go/backoff	70.711s
 ```

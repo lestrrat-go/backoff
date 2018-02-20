@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	backoff "github.com/lestrrat/go-backoff"
+	backoff "github.com/lestrrat-go/backoff"
 )
 
 func TestConstantInterface(t *testing.T) {

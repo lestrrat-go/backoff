@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	cenkalti "github.com/cenkalti/backoff"
-	lestrrat "github.com/lestrrat/go-backoff"
+	lestrrat "github.com/lestrrat-go/backoff"
 )
 
 func Benchmark(b *testing.B) {

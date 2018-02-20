@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	backoff "github.com/lestrrat/go-backoff"
+	backoff "github.com/lestrrat-go/backoff"
 	"github.com/stretchr/testify/assert"
 )
 
