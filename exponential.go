@@ -15,6 +15,7 @@ func NewExponential(options ...Option) *Exponential {
 	maxRetries := defaultMaxRetries
 	threshold := defaultThreshold
 	factor := float64(2)
+	var maxElapsedTime time.Duration
 	for _, o := range options {
 		switch o.Name() {
 		case optkeyFactor:
@@ -23,8 +24,10 @@ func NewExponential(options ...Option) *Exponential {
 			interval = o.Value().(time.Duration)
 		case optkeyJitterFactor:
 			jitterFactor = o.Value().(float64)
+		case optkeyMaxElapsedTime:
+			maxElapsedTime = o.Value().(time.Duration)
 		case optkeyMaxInterval:
-			maxInterval = float64(o.Value().(float64))
+			maxInterval = o.Value().(float64)
 		case optkeyMaxRetries:
 			maxRetries = o.Value().(int)
 		case optkeyThreshold:
@@ -36,6 +39,7 @@ func NewExponential(options ...Option) *Exponential {
 		factor:       factor,
 		interval:     interval,
 		jitterFactor: jitterFactor,
+		maxElapsedTime: maxElapsedTime,
 		maxInterval:  maxInterval,
 		maxRetries:   maxRetries,
 		random:       rand.New(rand.NewSource(time.Now().UnixNano())),
@@ -61,9 +65,10 @@ func releaseExponentialBackoff(b *exponentialBackoff) {
 
 func (p *Exponential) Start(ctx context.Context) (Backoff, CancelFunc) {
 	b := getExponentialBackoff()
-	b.baseBackoff = newBaseBackoff(ctx, p.maxRetries)
+	b.baseBackoff = newBaseBackoff(ctx, p.maxRetries, p.maxElapsedTime)
 	b.policy = p
 	b.attempt = 0
+	b.baseBackoff.Start(ctx)
 
 	return b, CancelFunc(func() {
 		b.cancelLocked()
