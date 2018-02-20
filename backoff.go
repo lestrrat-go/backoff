@@ -146,7 +146,7 @@ func (b *baseBackoff) Start(ctx context.Context) {
 		go func() {
 			select {
 			case <-time.After(v):
-				b.cancel()
+				b.cancelLocked()
 			case <-ctx.Done():
 				return
 			}
