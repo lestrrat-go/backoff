@@ -70,6 +70,7 @@ func (p *Exponential) Start(ctx context.Context) (Backoff, CancelFunc) {
 	b.attempt = 0
 	b.baseBackoff.Start(ctx)
 
+	go b.fire() // the first call
 	return b, CancelFunc(func() {
 		b.cancelLocked()
 		releaseExponentialBackoff(b)

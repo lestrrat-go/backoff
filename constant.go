@@ -31,6 +31,7 @@ func (p *Constant) Start(ctx context.Context) (Backoff, CancelFunc) {
 	}
 	b.baseBackoff.Start(ctx)
 
+	go b.fire() // the first call
 	return b, CancelFunc(b.cancelLocked)
 }
 

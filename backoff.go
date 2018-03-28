@@ -53,6 +53,16 @@ func IsPermanentError(err error) bool {
 	return false
 }
 
+// Continue is a convenience wrapper around the
+func Continue(b Backoff) bool {
+	select {
+	case <-b.Done():
+		return false
+	case <-b.Next():
+		return true
+	}
+}
+
 // Retry is a convenience wrapper around the backoff algorithm. If your target
 // operation can be nicely enclosed in the `Executer` interface, this will
 // remove your need to write much of the boilerplate.
@@ -60,7 +70,7 @@ func Retry(ctx context.Context, p Policy, e Executer) error {
 	b, cancel := p.Start(ctx)
 	defer cancel()
 
-	for {
+	for Continue(b) {
 		err := e.Execute(ctx)
 		if err == nil {
 			return nil
@@ -69,14 +79,8 @@ func Retry(ctx context.Context, p Policy, e Executer) error {
 		if IsPermanentError(err) {
 			return errors.Wrap(err, `permanent error`)
 		}
-
-		select {
-		case <-b.Done():
-			return errors.Wrap(err, `retry attempts failed`)
-		case <-b.Next():
-			// no op, continue
-		}
 	}
+	return errors.New(`retry attempts failed`)
 }
 
 func newBaseBackoff(ctx context.Context, maxRetries int, maxElapsedTime time.Duration) *baseBackoff {
@@ -86,7 +90,7 @@ func newBaseBackoff(ctx context.Context, maxRetries int, maxElapsedTime time.Dur
 		ctx:            backoffCtx,
 		maxElapsedTime: maxElapsedTime,
 		maxRetries:     maxRetries,
-		next:           make(chan struct{}),
+		next:           make(chan struct{}, 1),
 		startTime:      time.Now(),
 	}
 }

@@ -23,22 +23,13 @@ func RetryFunc(arg Foo) (Result, error) {
   b, cancel := policy.Start(context.Background())
   defer cancel()
 
-  for {
+  for retry.Continue(b) {
     res, err := Func(arg)
     if err == nil {
       return res, nil
     }
-
-    select {
-    case <-b.Done():
-      return nil, errors.New(`tried very hard, but no luck`)
-    case <-b.Next():
-      // at this point we can fire the next call, so
-      // just continue with the loop
-    }
   }
-
-  return nil, errors.New(`unreachable`)
+  return nil, errors.New(`tried very hard, but no luck`)
 }
 ```
 
