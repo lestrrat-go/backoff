@@ -23,7 +23,7 @@ func RetryFunc(arg Foo) (Result, error) {
   b, cancel := policy.Start(context.Background())
   defer cancel()
 
-  for retry.Continue(b) {
+  for backoff.Continue(b) {
     res, err := Func(arg)
     if err == nil {
       return res, nil
