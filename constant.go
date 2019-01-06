@@ -31,8 +31,11 @@ func (p *Constant) Start(ctx context.Context) (Backoff, CancelFunc) {
 	}
 	b.baseBackoff.Start(ctx)
 
-	go b.fire()   // the first call
+	b.mu.Lock()
 	b.current = 1 // record that we've already queued the first fake event
+	go b.fire()   // the first call
+	b.mu.Unlock()
+
 	return b, CancelFunc(b.cancelLocked)
 }
 

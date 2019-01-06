@@ -70,8 +70,10 @@ func (p *Exponential) Start(ctx context.Context) (Backoff, CancelFunc) {
 	b.attempt = 0
 	b.baseBackoff.Start(ctx)
 
-	go b.fire() // the first call
-	b.current = 1
+	b.mu.Lock()
+	b.current = 1 // record that we've already queued the first fake event
+	go b.fire()   // the first call
+	b.mu.Unlock()
 
 	return b, CancelFunc(func() {
 		b.cancelLocked()
