@@ -161,3 +161,44 @@ LOOP:
 		return
 	}
 }
+
+func TestGHIssue6(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	t.Run("constant backoff", func(t *testing.T) {
+		backoffPolicy := backoff.NewConstant(10 * time.Millisecond)
+		b, cancel := backoffPolicy.Start(ctx)
+		defer cancel()
+
+		seen := make(map[time.Time]struct{})
+		for backoff.Continue(b) {
+			// Record execution in millisecond granularity for testing
+			now := time.Now().Truncate(time.Millisecond)
+			if _, ok := seen[now]; !assert.False(t, ok, `should not fire in the same millisecond`) {
+				return
+			}
+			seen[now] = struct{}{}
+		}
+	})
+	t.Run("exponential backoff", func(t *testing.T) {
+		backoffPolicy := backoff.NewExponential(
+			backoff.WithInterval(10*time.Millisecond),
+			backoff.WithJitterFactor(0),
+			backoff.WithFactor(2),
+		)
+
+		b, cancel := backoffPolicy.Start(ctx)
+		defer cancel()
+
+		seen := make(map[time.Time]struct{})
+		for backoff.Continue(b) {
+			// Record execution in millisecond granularity for testing
+			now := time.Now().Truncate(time.Millisecond)
+			if _, ok := seen[now]; !assert.False(t, ok, `should not fire in the same millisecond`) {
+				return
+			}
+			seen[now] = struct{}{}
+		}
+	})
+}

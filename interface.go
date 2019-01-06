@@ -48,6 +48,7 @@ type Option interface {
 }
 
 type baseBackoff struct {
+	current        interface{}
 	callCount      int
 	cancelFunc     context.CancelFunc
 	ctx            context.Context

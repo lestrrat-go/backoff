@@ -17,7 +17,6 @@ func TestExponential(t *testing.T) {
 	b, cancel := p.Start(context.Background())
 	defer cancel()
 
-	const attempts = 10
 	var durs = []time.Duration{
 		time.Second,
 		2 * time.Second,
@@ -48,7 +47,6 @@ func TestExponentialWithJitter(t *testing.T) {
 	b, cancel := p.Start(context.Background())
 	defer cancel()
 
-	const attempts = 10
 	var durs = []time.Duration{
 		time.Second,
 		2 * time.Second,

@@ -115,20 +115,18 @@ func (b *baseBackoff) cancel() {
 	b.cancelFunc()
 }
 
-func (b *baseBackoff) nextLocked() <-chan struct{} {
+func (b *baseBackoff) fire() {
 	b.mu.Lock()
 	defer b.mu.Unlock()
-	return b.next
+	b.fireNoLock()
 }
 
-func (b *baseBackoff) fire() {
+func (b *baseBackoff) fireNoLock() {
 	select {
 	case <-b.ctx.Done():
 		return
 	default:
 	}
-	b.mu.Lock()
-	defer b.mu.Unlock()
 
 	if b.next == nil {
 		return
@@ -143,6 +141,8 @@ func (b *baseBackoff) fire() {
 			b.callCount++
 		}
 	}
+
+	b.current = nil
 }
 
 func (b *baseBackoff) Start(ctx context.Context) {
