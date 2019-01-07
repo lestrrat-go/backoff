@@ -31,11 +31,22 @@ func (p *Constant) Start(ctx context.Context) (Backoff, CancelFunc) {
 	}
 	b.baseBackoff.Start(ctx)
 
-	go b.fire() // the first call
+	b.mu.Lock()
+	b.current = 1 // record that we've already queued the first fake event
+	go b.fire()   // the first call
+	b.mu.Unlock()
+
 	return b, CancelFunc(b.cancelLocked)
 }
 
 func (b *constantBackoff) Next() <-chan struct{} {
-	time.AfterFunc(b.policy.delay, b.fire)
-	return b.nextLocked()
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
+	// Only queue a request to fire if the previous request
+	// has already been processed
+	if b.current == nil {
+		b.current = time.AfterFunc(b.policy.delay, b.fire)
+	}
+	return b.next
 }

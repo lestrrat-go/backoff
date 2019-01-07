@@ -5,5 +5,5 @@ script:
   - go test ./...
   - go test -race -count 20
 go:
-  - 1.9.x
+  - 1.11.x
   - tip

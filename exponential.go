@@ -36,14 +36,14 @@ func NewExponential(options ...Option) *Exponential {
 	}
 
 	return &Exponential{
-		factor:       factor,
-		interval:     interval,
-		jitterFactor: jitterFactor,
+		factor:         factor,
+		interval:       interval,
+		jitterFactor:   jitterFactor,
 		maxElapsedTime: maxElapsedTime,
-		maxInterval:  maxInterval,
-		maxRetries:   maxRetries,
-		random:       rand.New(rand.NewSource(time.Now().UnixNano())),
-		threshold:    threshold,
+		maxInterval:    maxInterval,
+		maxRetries:     maxRetries,
+		random:         rand.New(rand.NewSource(time.Now().UnixNano())),
+		threshold:      threshold,
 	}
 }
 
@@ -70,7 +70,11 @@ func (p *Exponential) Start(ctx context.Context) (Backoff, CancelFunc) {
 	b.attempt = 0
 	b.baseBackoff.Start(ctx)
 
-	go b.fire() // the first call
+	b.mu.Lock()
+	b.current = 1 // record that we've already queued the first fake event
+	go b.fire()   // the first call
+	b.mu.Unlock()
+
 	return b, CancelFunc(func() {
 		b.cancelLocked()
 		releaseExponentialBackoff(b)
@@ -78,11 +82,16 @@ func (p *Exponential) Start(ctx context.Context) (Backoff, CancelFunc) {
 }
 
 func (b *exponentialBackoff) Next() <-chan struct{} {
-	d := b.delayForAttempt(b.attempt)
-	b.attempt++
-	time.AfterFunc(d, b.fire)
+	b.mu.Lock()
+	defer b.mu.Unlock()
 
-	return b.nextLocked()
+	if b.current == nil {
+		d := b.delayForAttempt(b.attempt)
+		b.attempt++
+		b.current = time.AfterFunc(d, b.fire)
+	}
+
+	return b.next
 }
 
 func (b *exponentialBackoff) delayForAttempt(attempt float64) time.Duration {
