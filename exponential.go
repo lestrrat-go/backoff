@@ -42,7 +42,6 @@ func NewExponential(options ...Option) *Exponential {
 		maxElapsedTime: maxElapsedTime,
 		maxInterval:    maxInterval,
 		maxRetries:     maxRetries,
-		random:         rand.New(rand.NewSource(time.Now().UnixNano())),
 		threshold:      threshold,
 	}
 }
@@ -68,6 +67,7 @@ func (p *Exponential) Start(ctx context.Context) (Backoff, CancelFunc) {
 	b.baseBackoff = newBaseBackoff(ctx, p.maxRetries, p.maxElapsedTime)
 	b.policy = p
 	b.attempt = 0
+	b.random = rand.New(rand.NewSource(time.Now().UnixNano()))
 	b.baseBackoff.Start(ctx)
 
 	b.mu.Lock()
@@ -102,7 +102,7 @@ func (b *exponentialBackoff) delayForAttempt(attempt float64) time.Duration {
 		jitteredMin := durf - jitterDelta
 		jitteredMax := durf + jitterDelta
 
-		durf = jitteredMin + b.policy.random.Float64()*(jitteredMax-jitteredMin+1)
+		durf = jitteredMin + b.random.Float64()*(jitteredMax-jitteredMin+1)
 	}
 
 	if maxf := b.policy.maxInterval; maxf > 0 && durf > maxf {

@@ -72,12 +72,12 @@ type Exponential struct {
 	maxElapsedTime time.Duration
 	maxInterval    float64
 	maxRetries     int
-	random         *rand.Rand
 	threshold      time.Duration // max backoff
 }
 
 type exponentialBackoff struct {
 	*baseBackoff
 	policy  *Exponential
+	random  *rand.Rand
 	attempt float64
 }
