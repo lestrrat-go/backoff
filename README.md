@@ -17,7 +17,7 @@ func Func(arg Foo) (Result, error) { ... }
 var policy = backoff.NewExponential(
   backoff.WithInterval(500*time.Millisecond), // base interval
   backoff.WithJitterFactor(0.05), // 5% jitter
-  backoff.WithMaxRetries(25),
+  backoff.WithMaxRetries(25), // If not specified, default number of retries is 10
 )
 func RetryFunc(arg Foo) (Result, error) {
   b, cancel := policy.Start(context.Background())
