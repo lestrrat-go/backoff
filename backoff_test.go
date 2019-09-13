@@ -228,8 +228,13 @@ func TestRetryForever(t *testing.T) {
 			}
 		}
 
-		// if we got here, it means that we did not retry forever
-		t.Errorf("Bailed out of backoff.Continue(b)")
+		// detect if we're really done, or just bailed out of loop by max attempts
+		select {
+		case <-ctx.Done():
+		default:
+			// if we got here, it means that we did not retry forever
+			t.Errorf("Bailed out of backoff.Continue(b) after %d attempts", count)
+		}
 	}()
 
 	timer := time.NewTimer(time.Second)
