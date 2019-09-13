@@ -46,6 +46,12 @@ func WithMaxInterval(v time.Duration) Option {
 	}
 }
 
+// WithRetryForever is a short-hand for `WithMaxRetries(0)` -- well, ok, it's not
+// a short-hand. But it makes reading the code just a tiny bit easier
+func WithRetryForever() Option {
+	return WithMaxRetries(0)
+}
+
 // WithMaxRetries specifies the maximum number of attempts that can be made
 // by the backoff policies. By default each policy tries up to 10 times.
 //

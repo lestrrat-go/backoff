@@ -50,6 +50,9 @@ func ExampleRetry() {
   ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
   defer cancel()
 
+	// Note that the following will only retry up to 10 attempts,
+	// as it's the default. If you want to wait retry forever, use
+	// backoff.WithRetryForever (or `backoff.WithMaxRetries(0)`)
   p := backoff.NewExponential()
   if err := backoff.Retry(ctx, p, e); err != nil {
     log.Printf("failed to call function after repeated tries")
@@ -100,6 +103,11 @@ by the backoff policies. By default each policy tries up to 10 times.
 
 If you would like to retry forever, specify "0" and pass to the constructor
 of each policy.
+
+## WithRetryForever
+
+WithRetryForever is a short-hand for `WithMaxRetries(0)` -- well, ok, it's not
+a short-hand. But it makes reading the code just a tiny bit easier
 
 ## WithMaxElapsedTime
 

@@ -202,3 +202,49 @@ func TestGHIssue6(t *testing.T) {
 		}
 	})
 }
+
+func TestRetryForever(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	done := make(chan struct{})
+	count := 0
+	go func() {
+		defer close(done)
+		policy := backoff.NewExponential(
+			backoff.WithRetryForever(),
+			backoff.WithInterval(time.Millisecond),
+		)
+		b, cancel := policy.Start(ctx)
+		defer cancel()
+
+		tick := time.NewTicker(time.Millisecond)
+		for backoff.Continue(b) {
+			count++
+			select {
+			case <-ctx.Done():
+				return
+			case <-tick.C:
+			}
+		}
+
+		// if we got here, it means that we did not retry forever
+		t.Errorf("Bailed out of backoff.Continue(b)")
+	}()
+
+	timer := time.NewTimer(time.Second)
+	<-timer.C
+
+	cancel()
+
+	// wait for max 1 second for the goroutine to come back
+	timeout := time.NewTimer(time.Second)
+	select {
+	case <-done:
+		if assert.True(t, count >= 10, "we should have executed more than 10 times, but executed %d", count) {
+			return
+		}
+	case <-timeout.C:
+		t.Error(`goroutine did not come back in time`)
+	}
+}
