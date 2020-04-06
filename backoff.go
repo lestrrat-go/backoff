@@ -70,17 +70,24 @@ func Retry(ctx context.Context, p Policy, e Executer) error {
 	b, cancel := p.Start(ctx)
 	defer cancel()
 
+	var (
+		count int
+		err   error
+	)
+
 	for Continue(b) {
-		err := e.Execute(ctx)
-		if err == nil {
+		if err = e.Execute(ctx); err == nil {
 			return nil
 		}
 
 		if IsPermanentError(err) {
 			return errors.Wrap(err, `permanent error`)
 		}
+
+		count++
 	}
-	return errors.New(`retry attempts failed`)
+
+	return errors.Wrapf(err, "%d attempts failed", count)
 }
 
 func newBaseBackoff(ctx context.Context, maxRetries int, maxElapsedTime time.Duration) *baseBackoff {
