@@ -5,48 +5,53 @@ import (
 	"time"
 )
 
-func NewConstant(delay time.Duration, options ...Option) *Constant {
-	maxRetries := defaultMaxRetries
-	var maxElapsedTime time.Duration
-	for _, o := range options {
-		switch o.Name() {
-		case optkeyMaxElapsedTime:
-			maxElapsedTime = o.Value().(time.Duration)
-		case optkeyMaxRetries:
-			maxRetries = o.Value().(int)
+type ConstantInterval struct {
+	interval time.Duration
+}
+
+func NewConstantInterval(options ...Option) *ConstantInterval {
+	var interval time.Duration = 15 * time.Minute
+	for _, option := range options {
+		switch option.Ident() {
+		case identInterval{}:
+			interval = option.Value().(time.Duration)
 		}
 	}
 
-	return &Constant{
-		delay:          delay,
-		maxElapsedTime: maxElapsedTime,
-		maxRetries:     maxRetries,
+	return &ConstantInterval{
+		interval: interval,
 	}
 }
 
-func (p *Constant) Start(ctx context.Context) (Backoff, CancelFunc) {
-	b := &constantBackoff{
-		baseBackoff: newBaseBackoff(ctx, p.maxRetries, p.maxElapsedTime),
-		policy:      p,
-	}
-	b.baseBackoff.Start(ctx)
-
-	b.mu.Lock()
-	b.current = 1 // record that we've already queued the first fake event
-	go b.fire()   // the first call
-	b.mu.Unlock()
-
-	return b, CancelFunc(b.cancelLocked)
+func (g *ConstantInterval) Next() time.Duration {
+	return g.interval
 }
 
-func (b *constantBackoff) Next() <-chan struct{} {
-	b.mu.Lock()
-	defer b.mu.Unlock()
+type ConstantPolicy struct {
+	cOptions []Option
+	igOptions []Option
+}
 
-	// Only queue a request to fire if the previous request
-	// has already been processed
-	if b.current == nil {
-		b.current = time.AfterFunc(b.policy.delay, b.fire)
+func NewConstantPolicy(options ...Option) *ConstantPolicy {
+	var cOptions []Option
+	var igOptions []Option
+
+	for _, option := range options {
+		switch option.Ident() {
+		case identInterval{}:
+			igOptions = append(igOptions, option)
+		default:
+			cOptions = append(cOptions, option)
+		}
 	}
-	return b.next
+
+	return &ConstantPolicy{
+		cOptions: cOptions,
+		igOptions: igOptions,
+	}
+}
+
+func (p *ConstantPolicy) Start(ctx context.Context) Controller {
+	ig := NewConstantInterval(p.igOptions...)
+	return newController(ctx, ig, p.cOptions...)
 }
