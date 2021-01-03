@@ -1,9 +1,0 @@
-language: go
-sudo: false
-install: go get -t -v 
-script:
-  - go test ./...
-  - go test -race -count 20
-go:
-  - 1.11.x
-  - tip
