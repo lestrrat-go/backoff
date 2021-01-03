@@ -10,6 +10,11 @@ func Constant(options ...Option) Policy {
 	return NewConstantPolicy(options...)
 }
 
+// Constant creates a new ExponentialPolicy object
+func Exponential(options ...Option) Policy {
+	return NewExponentialPolicy(options...)
+}
+
 // Continue is a convenience function to check when we can fire
 // the next invocation of the desired backoff code
 //

@@ -10,7 +10,7 @@ import "github.com/lestrrat-go/backoff"
 
 func Func(arg Foo) (Result, error) { ... }
 
-var policy = backoff.NewExponential(
+var policy = backoff.Exponential(
   backoff.WithMinInterval(500*time.Millisecond), // base interval
   backoff.WithJitterFactor(0.05), // 5% jitter
   backoff.WithMaxRetries(25), // If not specified, default number of retries is 10

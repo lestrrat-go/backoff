@@ -1,6 +1,7 @@
 package backoff
 
 import (
+	"context"
 	"math/rand"
 	"time"
 )
@@ -90,4 +91,33 @@ func (g *ExponentialInterval) Next() time.Duration {
 	}
 	g.current = next
 	return time.Duration(next)
+}
+
+type ExponentialPolicy struct {
+	cOptions  []Option
+	igOptions []Option
+}
+
+func NewExponentialPolicy(options ...Option) *ExponentialPolicy {
+	var cOptions []Option
+	var igOptions []Option
+
+	for _, option := range options {
+		switch option.Ident() {
+		case identInterval{}:
+			igOptions = append(igOptions, option)
+		default:
+			cOptions = append(cOptions, option)
+		}
+	}
+
+	return &ExponentialPolicy{
+		cOptions:  cOptions,
+		igOptions: igOptions,
+	}
+}
+
+func (p *ExponentialPolicy) Start(ctx context.Context) Controller {
+	ig := NewExponentialInterval(p.igOptions...)
+	return newController(ctx, ig, p.cOptions...)
 }
