@@ -2,82 +2,29 @@ package backoff
 
 import (
 	"context"
-	"math/rand"
-	"sync"
 	"time"
+
+	"github.com/lestrrat-go/option"
 )
 
-const (
-	optkeyFactor         = "factor"
-	optkeyInterval       = "interval"
-	optkeyJitterFactor   = "jitter-factor"
-	optkeyMaxElapsedTime = "max-elapsed-time"
-	optkeyMaxInterval    = "max-interval"
-	optkeyMaxRetries     = "max-retries"
-	optkeyThreshold      = "threshold"
-)
+type Option = option.Interface
 
-const (
-	defaultInterval     = 500 * time.Millisecond
-	defaultJitterFactor = 0.5
-	defaultMaxInterval  = float64(2 * time.Minute)
-	defaultMaxRetries   = 10
-	defaultThreshold    = 15 * time.Minute
-)
-
-type CancelFunc func()
-
-type Policy interface {
-	Start(context.Context) (Backoff, CancelFunc)
-}
-
-type Backoff interface {
+type Controller interface {
 	Done() <-chan struct{}
 	Next() <-chan struct{}
 }
 
-type Constant struct {
-	delay          time.Duration
-	maxElapsedTime time.Duration
-	maxRetries     int
+type IntervalGenerator interface {
+	Next() time.Duration
 }
 
-type Option interface {
-	Name() string
-	Value() interface{}
+// Policy is an interface for the backoff policies that this package
+// implements. Users must create a controller object from this
+// policy to actually do anything with it
+type Policy interface {
+	Start(context.Context) Controller
 }
 
-type baseBackoff struct {
-	current        interface{}
-	callCount      int
-	cancelFunc     context.CancelFunc
-	ctx            context.Context
-	maxElapsedTime time.Duration
-	maxRetries     int
-	mu             sync.RWMutex
-	startTime      time.Time
-	next           chan struct{}
-}
-
-type constantBackoff struct {
-	*baseBackoff
-	policy *Constant
-}
-
-// Exponential implements an exponential backoff policy.
-type Exponential struct {
-	factor         float64
-	interval       time.Duration
-	jitterFactor   float64
-	maxElapsedTime time.Duration
-	maxInterval    float64
-	maxRetries     int
-	threshold      time.Duration // max backoff
-}
-
-type exponentialBackoff struct {
-	*baseBackoff
-	policy  *Exponential
-	random  *rand.Rand
-	attempt float64
+type Random interface {
+	Float64() float64
 }
