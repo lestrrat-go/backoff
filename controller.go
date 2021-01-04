@@ -59,7 +59,10 @@ func (c *controller) loop() {
 			c.timer.Reset(d)
 		case <-c.timer.C:
 			c.next <- struct{}{}
-			c.retries++
+			if c.maxRetries > 0 {
+				c.retries++
+			}
+
 			if !c.check() {
 				c.cancel()
 				return
