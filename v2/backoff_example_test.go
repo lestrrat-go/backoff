@@ -5,7 +5,7 @@ import (
 	"errors"
 	"time"
 
-	backoff "github.com/lestrrat-go/backoff"
+	backoff "github.com/lestrrat-go/backoff/v2"
 )
 
 func ExampleConstant() {
