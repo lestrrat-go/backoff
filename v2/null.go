@@ -27,6 +27,7 @@ func newNullController(ctx context.Context) *nullController {
 	}
 	go func(ch chan struct{}, cancel func()) {
 		ch <- struct{}{}
+		close(ch)
 		cancel()
 	}(c.next, cancel)
 	return c
