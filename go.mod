@@ -1,4 +1,4 @@
-module github.com/lestrrat-go/backoff
+module github.com/lestrrat-go/backoff/v2
 
 go 1.16
 
