@@ -25,7 +25,7 @@ func Continue(c Controller) bool {
 	select {
 	case <-c.Done():
 		return false
-	case <-c.Next():
-		return true
+	case _, ok := <-c.Next():
+		return ok
 	}
 }

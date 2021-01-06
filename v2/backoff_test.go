@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/lestrrat-go/backoff"
+	"github.com/lestrrat-go/backoff/v2"
 	"github.com/stretchr/testify/assert"
 )
 
