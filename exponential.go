@@ -97,12 +97,21 @@ func (b *exponentialBackoff) Next() <-chan struct{} {
 func (b *exponentialBackoff) delayForAttempt(attempt float64) time.Duration {
 	minf := float64(b.policy.interval)
 	durf := minf * math.Pow(b.policy.factor, attempt)
+
 	if b.policy.jitterFactor > 0 {
 		jitterDelta := durf * b.policy.jitterFactor
 		jitteredMin := durf - jitterDelta
 		jitteredMax := durf + jitterDelta
 
 		durf = jitteredMin + b.random.Float64()*(jitteredMax-jitteredMin+1)
+		if math.IsNaN(durf) {
+			// when `durf` come from `math.Pow()` is `Inf`, `jitterDelta` also becomes `Inf`
+			// and `jitteredMin` becomes `NaN` because the result of `Inf - Inf` is `NaN`.
+			// This `NaN` pollutes the above `durf` so `time.Duration(NaN)` will be a result of this function.
+			// This might not be expected (see also: https://play.golang.org/p/s3nG-s4Z9En) and
+			// the backoff mechanism won't work correctly.
+			durf = math.MaxFloat64
+		}
 	}
 
 	if maxf := b.policy.maxInterval; maxf > 0 && durf > maxf {
