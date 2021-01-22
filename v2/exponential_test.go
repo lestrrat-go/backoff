@@ -19,14 +19,12 @@ func TestNewExponentialIntervalWithDefaultOptions(t *testing.T) {
 }
 
 func TestNewExponentialIntervalWithCustomOptions(t *testing.T) {
-	interval := time.Microsecond
 	jitter := 0.99
 	maxInterval := 24 * time.Hour
 	minInterval := time.Nanosecond
 	multiplier := float64(99999)
 	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
 	p := NewExponentialInterval(
-		WithInterval(interval),
 		WithJitterFactor(jitter),
 		WithMaxInterval(maxInterval),
 		WithMinInterval(minInterval),

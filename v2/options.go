@@ -14,8 +14,12 @@ type identMinInterval struct{}
 type identMultiplier struct{}
 type identRNG struct{}
 
+// ControllerOption is an option that may be passed to Policy objects,
+// but are ultimately passed down to the Controller objects.
+// (Normally you do not have to care about the distinction)
 type ControllerOption interface {
-	Option
+	ConstantOption
+	ExponentialOption
 	controllerOption()
 }
 
@@ -23,13 +27,33 @@ type controllerOption struct {
 	Option
 }
 
+func (*controllerOption) exponentialOption() {}
 func (*controllerOption) controllerOption() {}
+func (*controllerOption) constantOption() {}
 
-// WithInterval specifies the constant interval used in ConstantPolicy and
-// ConstantInterval.
-func WithInterval(v time.Duration) Option {
-	return option.New(identInterval{}, v)
+// ConstantOption is an option that is used by the Constant policy.
+type ConstantOption interface {
+	Option
+	constantOption()
 }
+
+type constantOption struct {
+	Option
+}
+
+func (*constantOption) constantOption() {}
+
+// ExponentialOption is an option that is used by the Exponential policy.
+type ExponentialOption interface {
+	Option
+	exponentialOption()
+}
+
+type exponentialOption struct {
+	Option
+}
+
+func (*exponentialOption) exponentialOption() {}
 
 // WithMaxRetries specifies the maximum number of attempts that can be made
 // by the backoff policies. By default each policy tries up to 10 times.
@@ -42,20 +66,23 @@ func WithMaxRetries(v int) ControllerOption {
 	return &controllerOption{option.New(identMaxRetries{}, v)}
 }
 
-// WithMaxInterval specifies the maximum duration used ax exponential backoff
+// WithInterval specifies the constant interval used in ConstantPolicy and
+// ConstantInterval.
 // The default value is 1 minute.
-//
-// This option can be passed to ExponentialPolicy constructor
-func WithMaxInterval(v time.Duration) Option {
-	return option.New(identMaxInterval{}, v)
+func WithInterval(v time.Duration) ConstantOption {
+	return &constantOption{option.New(identInterval{}, v)}
+}
+
+// WithMaxInterval specifies the maximum duration used in exponential backoff
+// The default value is 1 minute.
+func WithMaxInterval(v time.Duration) ExponentialOption {
+	return &exponentialOption{option.New(identMaxInterval{}, v)}
 }
 
 // WithMinInterval specifies the minimum duration used in exponential backoff.
 // The default value is 500ms.
-//
-// This option can be passed to ExponentialPolicy constructor
-func WithMinInterval(v time.Duration) Option {
-	return option.New(identMinInterval{}, v)
+func WithMinInterval(v time.Duration) ExponentialOption {
+	return &exponentialOption{option.New(identMinInterval{}, v)}
 }
 
 // WithMultiplier specifies the factor in which the backoff intervals are
@@ -64,10 +91,8 @@ func WithMinInterval(v time.Duration) Option {
 // (up to the value specified by WithMaxInterval). this value must be greater
 // than 1.0. If the value is less than equal to 1.0, the default value
 // of 1.5 is used.
-//
-// This option can be passed to ExponentialPolicy constructor
-func WithMultiplier(v float64) Option {
-	return option.New(identMultiplier{}, v)
+func WithMultiplier(v float64) ExponentialOption {
+	return &exponentialOption{option.New(identMultiplier{}, v)}
 }
 
 // WithJitterFactor enables some randomness (jittering) in the computation of
@@ -76,13 +101,13 @@ func WithMultiplier(v float64) Option {
 // ignored and jittering is disabled.
 //
 // This option can be passed to ExponentialPolicy constructor
-func WithJitterFactor(v float64) Option {
-	return option.New(identJitterFactor{}, v)
+func WithJitterFactor(v float64) ExponentialOption {
+	return &exponentialOption{option.New(identJitterFactor{}, v)}
 }
 
 // WithRNG specifies the random number generator used for jittering.
 // If not provided one will be created, but if you want a truly random
 // jittering, make sure to provide one that you explicitly initialized
-func WithRNG(v Random) Option {
-	return option.New(identRNG{}, v)
+func WithRNG(v Random) ExponentialOption {
+	return &exponentialOption{option.New(identRNG{}, v)}
 }

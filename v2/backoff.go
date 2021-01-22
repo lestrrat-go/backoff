@@ -11,7 +11,7 @@ func Constant(options ...Option) Policy {
 }
 
 // Constant creates a new ExponentialPolicy object
-func Exponential(options ...Option) Policy {
+func Exponential(options ...ExponentialOption) Policy {
 	return NewExponentialPolicy(options...)
 }
 

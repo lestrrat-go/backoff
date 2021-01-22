@@ -21,7 +21,7 @@ const (
 	defaultMultiplier  = 1.5
 )
 
-func NewExponentialInterval(options ...Option) *ExponentialInterval {
+func NewExponentialInterval(options ...ExponentialOption) *ExponentialInterval {
 	jitterFactor := 0.0
 	maxInterval := defaultMaxInterval
 	minInterval := defaultMinInterval
@@ -97,18 +97,18 @@ func (g *ExponentialInterval) Next() time.Duration {
 }
 
 type ExponentialPolicy struct {
-	cOptions  []Option
-	igOptions []Option
+	cOptions  []ControllerOption
+	igOptions []ExponentialOption
 }
 
-func NewExponentialPolicy(options ...Option) *ExponentialPolicy {
-	var cOptions []Option
-	var igOptions []Option
+func NewExponentialPolicy(options ...ExponentialOption) *ExponentialPolicy {
+	var cOptions []ControllerOption
+	var igOptions []ExponentialOption
 
 	for _, option := range options {
 		switch opt := option.(type) {
 		case ControllerOption:
-			cOptions = append(cOptions, option)
+			cOptions = append(cOptions, opt)
 		default:
 			igOptions = append(igOptions, opt)
 		}
@@ -124,3 +124,4 @@ func (p *ExponentialPolicy) Start(ctx context.Context) Controller {
 	ig := NewExponentialInterval(p.igOptions...)
 	return newController(ctx, ig, p.cOptions...)
 }
+

@@ -9,18 +9,22 @@ import (
 )
 
 func TestOptionPassing(t *testing.T) {
-	cOptions := []Option{
+	cOptions := []ControllerOption{
 		WithMaxRetries(9999999999999),
 	}
-	igOptions := []Option{
-		WithInterval(time.Microsecond),
+	igOptions := []ExponentialOption{
 		WithJitterFactor(0.99),
 		WithMaxInterval(24 * time.Hour),
 		WithMinInterval(time.Nanosecond),
 		WithMultiplier(99999),
 		WithRNG(rand.New(rand.NewSource(time.Now().UnixNano()))),
 	}
-	p := NewExponentialPolicy(append(igOptions, cOptions...)...)
+
+	merged := igOptions
+	for _, option := range cOptions {
+		merged = append(merged, option.(ExponentialOption))
+	}
+	p := NewExponentialPolicy(merged...)
 
 	if !assert.Equal(t, cOptions, p.cOptions) {
 		return

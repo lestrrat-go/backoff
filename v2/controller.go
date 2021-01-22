@@ -18,7 +18,7 @@ type controller struct {
 	timer      *time.Timer
 }
 
-func newController(ctx context.Context, ig IntervalGenerator, options ...Option) *controller {
+func newController(ctx context.Context, ig IntervalGenerator, options ...ControllerOption) *controller {
 	cctx, cancel := context.WithCancel(ctx) // DO NOT fire this cancel here
 
 	maxRetries := 10

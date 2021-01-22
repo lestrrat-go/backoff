@@ -9,8 +9,8 @@ type ConstantInterval struct {
 	interval time.Duration
 }
 
-func NewConstantInterval(options ...Option) *ConstantInterval {
-	var interval time.Duration = 15 * time.Minute
+func NewConstantInterval(options ...ConstantOption) *ConstantInterval {
+	var interval time.Duration = time.Minute
 	for _, option := range options {
 		switch option.Ident() {
 		case identInterval{}:
@@ -28,25 +28,25 @@ func (g *ConstantInterval) Next() time.Duration {
 }
 
 type ConstantPolicy struct {
-	cOptions []Option
-	igOptions []Option
+	cOptions  []ControllerOption
+	igOptions []ConstantOption
 }
 
 func NewConstantPolicy(options ...Option) *ConstantPolicy {
-	var cOptions []Option
-	var igOptions []Option
+	var cOptions []ControllerOption
+	var igOptions []ConstantOption
 
 	for _, option := range options {
-		switch option.Ident() {
-		case identInterval{}:
-			igOptions = append(igOptions, option)
+		switch opt := option.(type) {
+		case ControllerOption:
+			cOptions = append(cOptions, opt)
 		default:
-			cOptions = append(cOptions, option)
+			igOptions = append(igOptions, opt.(ConstantOption))
 		}
 	}
 
 	return &ConstantPolicy{
-		cOptions: cOptions,
+		cOptions:  cOptions,
 		igOptions: igOptions,
 	}
 }
