@@ -1,6 +1,9 @@
 package backoff
 
-import "context"
+import (
+	"context"
+	"sync"
+)
 
 // NullPolicy does not do any backoff. It allows the caller
 // to execute the desired code once, and no more
@@ -15,6 +18,7 @@ func (p *NullPolicy) Start(ctx context.Context) Controller {
 }
 
 type nullController struct {
+	mu   *sync.RWMutex
 	ctx  context.Context
 	next chan struct{}
 }
@@ -22,6 +26,7 @@ type nullController struct {
 func newNullController(ctx context.Context) *nullController {
 	cctx, cancel := context.WithCancel(ctx)
 	c := &nullController{
+		mu:   &sync.RWMutex{},
 		ctx:  cctx,
 		next: make(chan struct{}), // NO BUFFER
 	}
@@ -34,9 +39,13 @@ func newNullController(ctx context.Context) *nullController {
 }
 
 func (c *nullController) Done() <-chan struct{} {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
 	return c.ctx.Done()
 }
 
 func (c *nullController) Next() <-chan struct{} {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
 	return c.next
 }
