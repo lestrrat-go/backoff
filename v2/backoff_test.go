@@ -76,9 +76,38 @@ func TestExponential(t *testing.T) {
 		}
 	})
 	t.Run("Jitter", func(t *testing.T) {
-		ig := backoff.NewExponentialInterval(backoff.WithJitterFactor(0.02))
+		ig := backoff.NewExponentialInterval(
+			backoff.WithMaxInterval(time.Second),
+			backoff.WithJitterFactor(0.02),
+		)
+
+		testcases := []struct {
+			Base time.Duration
+		}{
+			{Base: 500 * time.Millisecond},
+			{Base: 750 * time.Millisecond},
+			{Base: time.Second},
+		}
+
 		for i := 0; i < 10; i++ {
-			t.Logf("%s", ig.Next())
+			dur := ig.Next()
+			var base time.Duration
+			if i > 2 {
+				base = testcases[2].Base
+			} else {
+				base = testcases[i].Base
+			}
+
+			min := int64(float64(base) * 0.98)
+			max := int64(float64(base) * 1.02)
+t.Logf("max = %s, min = %s", time.Duration(max), time.Duration(min))
+			if !assert.GreaterOrEqual(t, int64(dur), min) {
+				return
+			}
+			if !assert.GreaterOrEqual(t, max, int64(dur)) {
+				return
+			}
+
 		}
 	})
 	t.Run("Back off, no jitter", func(t *testing.T) {

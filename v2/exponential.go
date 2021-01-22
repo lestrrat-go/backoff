@@ -75,6 +75,15 @@ func (g *ExponentialInterval) Next() time.Duration {
 	} else {
 		next = g.current * g.multiplier
 	}
+
+	if next > g.maxInterval {
+		next = g.maxInterval
+	}
+	if next < g.minInterval {
+		next = g.minInterval
+	}
+
+	// Apply jitter *AFTER* we calculate the base interval
 	if factor := g.jitterFactor; factor > 0 {
 		jitterDelta := next * factor
 		jitterMin := next - jitterDelta
@@ -83,12 +92,6 @@ func (g *ExponentialInterval) Next() time.Duration {
 		next = jitterMin + g.rng.Float64()*(jitterMax-jitterMin+1)
 	}
 
-	if next > g.maxInterval {
-		next = g.maxInterval
-	}
-	if next < g.minInterval {
-		next = g.minInterval
-	}
 	g.current = next
 	return time.Duration(next)
 }
