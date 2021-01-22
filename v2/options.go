@@ -14,6 +14,17 @@ type identMinInterval struct{}
 type identMultiplier struct{}
 type identRNG struct{}
 
+type ControllerOption interface {
+	Option
+	controllerOption()
+}
+
+type controllerOption struct {
+	Option
+}
+
+func (*controllerOption) controllerOption() {}
+
 // WithInterval specifies the constant interval used in ConstantPolicy and
 // ConstantInterval.
 func WithInterval(v time.Duration) Option {
@@ -27,8 +38,8 @@ func WithInterval(v time.Duration) Option {
 // of each policy.
 //
 // This option can be passed to all policy constructors except for NullPolicy
-func WithMaxRetries(v int) Option {
-	return option.New(identMaxRetries{}, v)
+func WithMaxRetries(v int) ControllerOption {
+	return &controllerOption{option.New(identMaxRetries{}, v)}
 }
 
 // WithMaxInterval specifies the maximum duration used ax exponential backoff

@@ -106,11 +106,11 @@ func NewExponentialPolicy(options ...Option) *ExponentialPolicy {
 	var igOptions []Option
 
 	for _, option := range options {
-		switch option.Ident() {
-		case identInterval{}:
-			igOptions = append(igOptions, option)
-		default:
+		switch opt := option.(type) {
+		case ControllerOption:
 			cOptions = append(cOptions, option)
+		default:
+			igOptions = append(igOptions, opt)
 		}
 	}
 
