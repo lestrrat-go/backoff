@@ -2,6 +2,7 @@ package backoff
 
 import (
 	"context"
+	"sync"
 	"time"
 )
 
@@ -10,6 +11,7 @@ type controller struct {
 	cancel     func()
 	ig         IntervalGenerator
 	maxRetries int
+	mu         *sync.RWMutex
 	next       chan struct{} // user-facing channel
 	resetTimer chan time.Duration
 	retries    int
@@ -32,6 +34,7 @@ func newController(ctx context.Context, ig IntervalGenerator, options ...Option)
 		ctx:        cctx,
 		ig:         ig,
 		maxRetries: maxRetries,
+		mu:         &sync.RWMutex{},
 		next:       make(chan struct{}, 1),
 		resetTimer: make(chan time.Duration, 1),
 		timer:      time.NewTimer(ig.Next()),
@@ -80,9 +83,13 @@ func (c *controller) check() bool {
 }
 
 func (c *controller) Done() <-chan struct{} {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
 	return c.ctx.Done()
 }
 
 func (c *controller) Next() <-chan struct{} {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
 	return c.next
 }
