@@ -1,4 +1,4 @@
-# backoff
+# backoff ![](https://github.com/lestrrat-go/backoff/workflows/CI/badge.svg) [![Go Reference](https://pkg.go.dev/badge/github.com/lestrrat-go/backoff/v2.svg)](https://pkg.go.dev/github.com/lestrrat-go/backoff/v2)
 
 Idiomatic backoff for Go
 
