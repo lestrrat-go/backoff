@@ -1,5 +1,3 @@
-// +build bench
-
 package backoff_test
 
 import (
@@ -8,7 +6,7 @@ import (
 	"testing"
 
 	cenkalti "github.com/cenkalti/backoff"
-	lestrrat "github.com/lestrrat-go/backoff"
+	lestrrat "github.com/lestrrat-go/backoff/v2"
 )
 
 func Benchmark(b *testing.B) {
@@ -21,24 +19,23 @@ func Benchmark(b *testing.B) {
 		return v
 	}
 
-	var sink int
 	b.Run("cenkalti", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			b.StopTimer()
 			backoff := cenkalti.NewExponentialBackOff()
 			b.StartTimer()
 			cenkalti.Retry(func() error {
-				sink = fn()
+				_ = fn()
 				return errors.New(`dummy`)
 			}, cenkalti.WithMaxRetries(backoff, 5))
 		}
 	})
 	b.Run("lestrrat", func(b *testing.B) {
 		b.StopTimer()
-		policy := lestrrat.NewExponential(lestrrat.WithMaxRetries(5), lestrrat.WithFactor(1.2))
+		policy := lestrrat.Exponential(lestrrat.WithMaxRetries(5), lestrrat.WithJitterFactor(1.2))
 		for i := 0; i < b.N; i++ {
 			b.StartTimer()
-			backoff, cancel := policy.Start(context.Background())
+			backoff := policy.Start(context.Background())
 		MAIN:
 			for {
 				fn()
@@ -46,9 +43,9 @@ func Benchmark(b *testing.B) {
 				case <-backoff.Done():
 					break MAIN
 				case <-backoff.Next():
+					_ = fn()
 				}
 			}
-			cancel()
 			b.StopTimer()
 		}
 	})
