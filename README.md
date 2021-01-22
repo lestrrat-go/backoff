@@ -2,6 +2,10 @@
 
 Backoff algorithm and helpers for Go
 
+This path (github.com/lestrrat-go/backoff) points to v1.
+** PLEASE USE github.com/lestrrat-go/backoff/v ** for currently supported version
+
+
 # SYNOPSIS
 
 ```go
