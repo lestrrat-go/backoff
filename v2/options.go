@@ -67,7 +67,7 @@ func WithMinInterval(v time.Duration) Option {
 //
 // This option can be passed to ExponentialPolicy constructor
 func WithMultiplier(v float64) Option {
-	return option.New(identJitterFactor{}, v)
+	return option.New(identMultiplier{}, v)
 }
 
 // WithJitterFactor enables some randomness (jittering) in the computation of
