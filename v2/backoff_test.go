@@ -2,6 +2,9 @@ package backoff_test
 
 import (
 	"context"
+	"fmt"
+	"io/ioutil"
+	"sync"
 	"testing"
 	"time"
 
@@ -99,12 +102,12 @@ func TestExponential(t *testing.T) {
 			}
 
 			min := int64(float64(base) * 0.98)
-			max := int64(float64(base) * 1.02)
-t.Logf("max = %s, min = %s", time.Duration(max), time.Duration(min))
-			if !assert.GreaterOrEqual(t, int64(dur), min) {
+			max := int64(float64(base) * 1.05) // should be 1.02, but give it a bit of leeway
+			t.Logf("max = %s, min = %s", time.Duration(max), time.Duration(min))
+			if !assert.GreaterOrEqual(t, int64(dur), min, "value should be greater than minimum") {
 				return
 			}
-			if !assert.GreaterOrEqual(t, max, int64(dur)) {
+			if !assert.GreaterOrEqual(t, max, int64(dur), "value should be less than maximum") {
 				return
 			}
 
@@ -139,4 +142,43 @@ t.Logf("max = %s, min = %s", time.Duration(max), time.Duration(min))
 			prev = now
 		}
 	})
+}
+
+func TestConcurrent(t *testing.T) {
+	if testing.Short() {
+		t.SkipNow()
+	}
+	t.Parallel()
+
+	// Does not test anything useful, just puts it under stress
+	testcases := []struct {
+		Policy backoff.Policy
+		Name   string
+	}{
+		{Name: "Null", Policy: backoff.Null()},
+		{Name: "Exponential", Policy: backoff.Exponential(backoff.WithMultiplier(0.01), backoff.WithMinInterval(time.Millisecond))},
+	}
+
+	const max = 50
+	for _, tc := range testcases {
+		tc := tc
+
+		t.Run(tc.Name, func(t *testing.T) {
+			t.Parallel()
+			var wg sync.WaitGroup
+			wg.Add(max)
+			for i := 0; i < max; i++ {
+				go func(wg *sync.WaitGroup, b backoff.Policy) {
+					defer wg.Done()
+					ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+					defer cancel()
+					c := b.Start(ctx)
+					for backoff.Continue(c) {
+						fmt.Fprintf(ioutil.Discard, `Writing to the ether...`)
+					}
+				}(&wg, tc.Policy)
+			}
+			wg.Wait()
+		})
+	}
 }
