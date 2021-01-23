@@ -20,6 +20,7 @@ type identRNG struct{}
 type ControllerOption interface {
 	ConstantOption
 	ExponentialOption
+	JitterOption
 	controllerOption()
 }
 
@@ -28,8 +29,9 @@ type controllerOption struct {
 }
 
 func (*controllerOption) exponentialOption() {}
-func (*controllerOption) controllerOption() {}
-func (*controllerOption) constantOption() {}
+func (*controllerOption) controllerOption()  {}
+func (*controllerOption) constantOption()    {}
+func (*controllerOption) jitterOption()      {}
 
 // ConstantOption is an option that is used by the Constant policy.
 type ConstantOption interface {
@@ -54,6 +56,22 @@ type exponentialOption struct {
 }
 
 func (*exponentialOption) exponentialOption() {}
+
+// JitterOption is an option that is used by policy that supports jitter.
+type JitterOption interface {
+	Option
+	ExponentialOption
+	ConstantOption
+	jitterOption()
+}
+
+type jitterOption struct {
+	Option
+}
+
+func (*jitterOption) exponentialOption() {}
+func (*jitterOption) constantOption()    {}
+func (*jitterOption) jitterOption()      {}
 
 // WithMaxRetries specifies the maximum number of attempts that can be made
 // by the backoff policies. By default each policy tries up to 10 times.
@@ -100,14 +118,14 @@ func WithMultiplier(v float64) ExponentialOption {
 // value outside of this range is specified, the value will be silently
 // ignored and jittering is disabled.
 //
-// This option can be passed to ExponentialPolicy constructor
-func WithJitterFactor(v float64) ExponentialOption {
-	return &exponentialOption{option.New(identJitterFactor{}, v)}
+// This option can be passed to ExponentialPolicy or ConstantPolicy constructor
+func WithJitterFactor(v float64) JitterOption {
+	return &jitterOption{option.New(identJitterFactor{}, v)}
 }
 
 // WithRNG specifies the random number generator used for jittering.
 // If not provided one will be created, but if you want a truly random
 // jittering, make sure to provide one that you explicitly initialized
-func WithRNG(v Random) ExponentialOption {
-	return &exponentialOption{option.New(identRNG{}, v)}
+func WithRNG(v Random) JitterOption {
+	return &jitterOption{option.New(identRNG{}, v)}
 }

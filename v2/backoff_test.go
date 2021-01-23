@@ -182,3 +182,39 @@ func TestConcurrent(t *testing.T) {
 		})
 	}
 }
+
+func TestConstantWithJitter(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	defer cancel()
+
+	p := backoff.Constant(
+		backoff.WithInterval(300*time.Millisecond),
+		backoff.WithJitterFactor(0.50),
+		backoff.WithMaxRetries(999),
+	)
+	c := p.Start(ctx)
+
+	prev := time.Now()
+	var retries int
+	for backoff.Continue(c) {
+		t.Logf("%s backoff.Continue", time.Now())
+
+		// make sure that we've executed this in more or less 300ms ± 50%
+		retries++
+		if retries > 1 {
+			d := time.Since(prev)
+
+			// if the duration becomes out of the range values by jitter, it breaks loop
+			if (150*time.Millisecond <= d && d < 250*time.Millisecond) ||
+				(350*time.Millisecond < d && d <= 450*time.Millisecond) {
+				break
+			}
+		}
+		prev = time.Now()
+	}
+
+	// initial + 999 retries = 1000
+	if !assert.NotEqual(t, 1000, retries, `should not have retried 1000 times; if the # of retries reaches 1000, probably jitter doesn't work'`) {
+		return
+	}
+}
