@@ -2,17 +2,15 @@ package backoff
 
 import (
 	"context"
-	"math/rand"
 	"time"
 )
 
 type ExponentialInterval struct {
-	current      float64
-	jitterFactor float64
-	maxInterval  float64
-	minInterval  float64
-	multiplier   float64
-	rng          Random
+	current     float64
+	maxInterval float64
+	minInterval float64
+	multiplier  float64
+	jitter      jitter
 }
 
 const (
@@ -49,22 +47,12 @@ func NewExponentialInterval(options ...ExponentialOption) *ExponentialInterval {
 	if multiplier <= 1 {
 		multiplier = defaultMultiplier
 	}
-	if jitterFactor <= 0 || jitterFactor >= 1 {
-		jitterFactor = 0
-	}
-	if jitterFactor > 0 && rng == nil {
-		// if we have a jitter factor, and no RNG is provided, create one.
-		// This is definitely not "secure", but well, if you care enough,
-		// you would provide one
-		rng = rand.New(rand.NewSource(time.Now().UnixNano()))
-	}
 
 	return &ExponentialInterval{
-		jitterFactor: jitterFactor,
-		maxInterval:  maxInterval,
-		minInterval:  minInterval,
-		multiplier:   multiplier,
-		rng:          rng,
+		maxInterval: maxInterval,
+		minInterval: minInterval,
+		multiplier:  multiplier,
+		jitter:      newJitter(jitterFactor, rng),
 	}
 }
 
@@ -84,14 +72,7 @@ func (g *ExponentialInterval) Next() time.Duration {
 	}
 
 	// Apply jitter *AFTER* we calculate the base interval
-	if factor := g.jitterFactor; factor > 0 {
-		jitterDelta := next * factor
-		jitterMin := next - jitterDelta
-		jitterMax := next + jitterDelta
-
-		next = jitterMin + g.rng.Float64()*(jitterMax-jitterMin+1)
-	}
-
+	next = g.jitter.apply(next)
 	g.current = next
 	return time.Duration(next)
 }
@@ -124,4 +105,3 @@ func (p *ExponentialPolicy) Start(ctx context.Context) Controller {
 	ig := NewExponentialInterval(p.igOptions...)
 	return newController(ctx, ig, p.cOptions...)
 }
-

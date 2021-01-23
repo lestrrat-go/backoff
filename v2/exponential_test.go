@@ -11,11 +11,10 @@ import (
 func TestNewExponentialIntervalWithDefaultOptions(t *testing.T) {
 	p := NewExponentialInterval()
 
-	assert.Equal(t, 0.0, p.jitterFactor)
 	assert.Equal(t, defaultMaxInterval, p.maxInterval)
 	assert.Equal(t, defaultMinInterval, p.minInterval)
 	assert.Equal(t, defaultMultiplier, p.multiplier)
-	assert.Nil(t, p.rng)
+	assert.Equal(t, &nopJitter{}, p.jitter)
 }
 
 func TestNewExponentialIntervalWithCustomOptions(t *testing.T) {
@@ -32,11 +31,10 @@ func TestNewExponentialIntervalWithCustomOptions(t *testing.T) {
 		WithRNG(rng),
 	)
 
-	assert.Equal(t, jitter, p.jitterFactor)
 	assert.Equal(t, maxInterval, time.Duration(p.maxInterval))
 	assert.Equal(t, minInterval, time.Duration(p.minInterval))
 	assert.Equal(t, multiplier, p.multiplier)
-	assert.Equal(t, rng, p.rng)
+	assert.Equal(t, newRandomJitter(jitter, rng), p.jitter)
 }
 
 func TestNewExponentialIntervalWithOnlyJitterOptions(t *testing.T) {
@@ -45,6 +43,6 @@ func TestNewExponentialIntervalWithOnlyJitterOptions(t *testing.T) {
 		WithJitterFactor(jitter),
 	)
 
-	assert.Equal(t, jitter, p.jitterFactor)
-	assert.NotNil(t, p.rng, "should be generated automatically")
+	generatedRandomJitter := p.jitter.(*randomJitter)
+	assert.Equal(t, newRandomJitter(jitter, generatedRandomJitter.rng), p.jitter)
 }
