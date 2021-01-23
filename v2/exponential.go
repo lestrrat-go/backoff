@@ -89,7 +89,7 @@ func (g *ExponentialInterval) Next() time.Duration {
 		jitterMin := next - jitterDelta
 		jitterMax := next + jitterDelta
 
-		next = jitterMin + g.rng.Float64()*(jitterMax-jitterMin+1)
+		next = jitterMin + g.rng.Float64()*(jitterMax-jitterMin)
 	}
 
 	g.current = next
@@ -124,4 +124,3 @@ func (p *ExponentialPolicy) Start(ctx context.Context) Controller {
 	ig := NewExponentialInterval(p.igOptions...)
 	return newController(ctx, ig, p.cOptions...)
 }
-
