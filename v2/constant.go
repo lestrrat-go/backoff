@@ -7,24 +7,33 @@ import (
 
 type ConstantInterval struct {
 	interval time.Duration
+	jitter   jitter
 }
 
 func NewConstantInterval(options ...ConstantOption) *ConstantInterval {
-	var interval time.Duration = time.Minute
+	jitterFactor := 0.0
+	interval := time.Minute
+	var rng Random
+
 	for _, option := range options {
 		switch option.Ident() {
 		case identInterval{}:
 			interval = option.Value().(time.Duration)
+		case identJitterFactor{}:
+			jitterFactor = option.Value().(float64)
+		case identRNG{}:
+			rng = option.Value().(Random)
 		}
 	}
 
 	return &ConstantInterval{
 		interval: interval,
+		jitter:   newJitter(jitterFactor, rng),
 	}
 }
 
 func (g *ConstantInterval) Next() time.Duration {
-	return g.interval
+	return time.Duration(g.jitter.apply(float64(g.interval)))
 }
 
 type ConstantPolicy struct {

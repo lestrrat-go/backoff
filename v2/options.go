@@ -20,6 +20,7 @@ type identRNG struct{}
 type ControllerOption interface {
 	ConstantOption
 	ExponentialOption
+	CommonOption
 	controllerOption()
 }
 
@@ -28,8 +29,8 @@ type controllerOption struct {
 }
 
 func (*controllerOption) exponentialOption() {}
-func (*controllerOption) controllerOption() {}
-func (*controllerOption) constantOption() {}
+func (*controllerOption) controllerOption()  {}
+func (*controllerOption) constantOption()    {}
 
 // ConstantOption is an option that is used by the Constant policy.
 type ConstantOption interface {
@@ -54,6 +55,19 @@ type exponentialOption struct {
 }
 
 func (*exponentialOption) exponentialOption() {}
+
+// CommonOption is an option that can be passed to any of the backoff policies.
+type CommonOption interface {
+	ExponentialOption
+	ConstantOption
+}
+
+type commonOption struct {
+	Option
+}
+
+func (*commonOption) constantOption()    {}
+func (*commonOption) exponentialOption() {}
 
 // WithMaxRetries specifies the maximum number of attempts that can be made
 // by the backoff policies. By default each policy tries up to 10 times.
@@ -100,14 +114,14 @@ func WithMultiplier(v float64) ExponentialOption {
 // value outside of this range is specified, the value will be silently
 // ignored and jittering is disabled.
 //
-// This option can be passed to ExponentialPolicy constructor
-func WithJitterFactor(v float64) ExponentialOption {
-	return &exponentialOption{option.New(identJitterFactor{}, v)}
+// This option can be passed to ExponentialPolicy or ConstantPolicy constructor
+func WithJitterFactor(v float64) CommonOption {
+	return &commonOption{option.New(identJitterFactor{}, v)}
 }
 
 // WithRNG specifies the random number generator used for jittering.
 // If not provided one will be created, but if you want a truly random
 // jittering, make sure to provide one that you explicitly initialized
-func WithRNG(v Random) ExponentialOption {
-	return &exponentialOption{option.New(identRNG{}, v)}
+func WithRNG(v Random) CommonOption {
+	return &commonOption{option.New(identRNG{}, v)}
 }
