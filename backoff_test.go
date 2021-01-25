@@ -132,7 +132,7 @@ func TestExponential(t *testing.T) {
 
 			// Allow a flux of 100ms
 			expectedDuration := time.Duration(expected[count] * float64(time.Second))
-			if !assert.True(t, isInErrorRange(expectedDuration, d, 100*time.Millisecond), `observed duration (%s) is withing error range`, d) {
+			if !assert.True(t, isInErrorRange(expectedDuration, d, 100*time.Millisecond), `observed duration (%s) should be whthin error range (expected = %s, range = %s)`, d, expectedDuration, 100*time.Millisecond) {
 				return
 			}
 			count++
