@@ -2,254 +2,219 @@ package backoff_test
 
 import (
 	"context"
-	"errors"
 	"fmt"
+	"io/ioutil"
 	"sync"
 	"testing"
 	"time"
 
-	backoff "github.com/lestrrat-go/backoff"
+	"github.com/lestrrat-go/backoff/v2"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestRetry(t *testing.T) {
-	count := 0
-	fn := func(ctx context.Context) error {
-		if count++; count%10 == 0 {
-			return nil
-		}
-		return errors.New(`dummy`)
-	}
-
-	t.Run("succeed on 10th try", func(t *testing.T) {
-		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-		defer cancel()
-
-		p := backoff.NewExponential(
-			backoff.WithInterval(time.Millisecond),
-			backoff.WithJitterFactor(0),
-			backoff.WithFactor(2),
-		)
-
-		start := time.Now()
-		err := backoff.Retry(ctx, p, backoff.ExecuteFunc(fn))
-		if !assert.NoError(t, err, `backoff.Retry should succeed`) {
-			return
-		}
-
-		// 1 + 2 + 4 + 8 ... + 256 == 511 ms. with everything going on, we should
-		// never exceed  600 ms
-		elapsed := time.Since(start)
-		if !assert.True(t, elapsed < 600*time.Millisecond, `total elapsed time should be less than 600 ms (%s)`, elapsed) {
-			return
-		}
-
-		if !assert.Equal(t, 10, count, `fn should have been called 10 times`) {
-			return
-		}
-	})
-}
-
-func TestRetryExponentialParallel(t *testing.T) {
-	p := backoff.NewExponential(
-		backoff.WithInterval(time.Millisecond),
-		backoff.WithJitterFactor(0),
-		backoff.WithFactor(2),
-	)
-
-	// Timeout here needs to be handled carefully, as parallel t.Run()
-	// will fallthrough out of this function, and any defered cancel()
-	// statements will be called before the tests have a chance to run
-	// properly. So instead of using WithTimeout() then defer the cancel
-	// function like we normally do, we wait calling cancel() until
-	// all of the subtests are done
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-
-	var wg sync.WaitGroup
-
-	// Just run a bunch of goroutines, check for races
-	for i := 0; i < 10; i++ {
-		count := 0
-		fn := backoff.ExecuteFunc(func(ctx context.Context) error {
-			if count++; count%10 == 0 {
-				return nil
-			}
-			return errors.New(`dummy`)
-		})
-
-		wg.Add(1)
-		t.Run(fmt.Sprintf("goroutine %02d", i), func(t *testing.T) {
-			defer wg.Done()
-			t.Parallel()
-			err := backoff.Retry(ctx, p, fn)
-			if !assert.NoError(t, err, `backoff.Retry should succeed`) {
-				return
-			}
-		})
-	}
-
-	go func() {
-		wg.Wait()
-		cancel() // okay, now we can cancel
-	}()
-}
-
-func TestGHIssue1(t *testing.T) {
-	makeOptions := func(options ...backoff.Option) []backoff.Option {
-		var newOptions []backoff.Option
-
-		newOptions = append(newOptions, backoff.WithInterval(10*time.Millisecond))
-		newOptions = append(newOptions, backoff.WithMaxRetries(1))
-		newOptions = append(newOptions, options...)
-		return newOptions
-	}
-
-	run := func(ctx context.Context, options ...backoff.Option) {
-		policy := backoff.NewExponential(options...)
-		b, cancel := policy.Start(ctx)
-		defer cancel()
-
-		for {
-			select {
-			case <-b.Done():
-				return
-			case <-b.Next():
-			}
-		}
-	}
-
-	tests := []struct {
-		options []backoff.Option
-	}{
-		{
-			options: makeOptions(),
-		},
-		{
-			options: makeOptions(backoff.WithMaxRetries(20)),
-		},
-	}
-
-	for _, test := range tests {
-		ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
-		run(ctx, test.options...)
-		cancel()
-	}
-}
-
-func TestMaxElapsedTime(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+func TestNull(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
-	policy := backoff.NewConstant(100*time.Millisecond, backoff.WithMaxElapsedTime(time.Second))
-	b, bcancel := policy.Start(ctx)
-	defer bcancel()
+	p := backoff.Null()
+	c := p.Start(ctx)
 
-	var count int
-LOOP:
-	for {
-		select {
-		case <-b.Next():
-			count++
-		case <-b.Done():
-			break LOOP
-		case <-ctx.Done():
-			t.Errorf("context expired before backoff")
-			return
-		}
+	var retries int
+	for backoff.Continue(c) {
+		t.Logf("%s backoff.Continue", time.Now())
+		retries++
 	}
-	if !assert.True(t, count > 5, "we should have at least a few iterations") {
+	if !assert.Equal(t, 1, retries, `should have done 1 retries`) {
 		return
 	}
 }
 
-func TestGHIssue6(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+func TestConstant(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
 
-	t.Run("constant backoff", func(t *testing.T) {
-		backoffPolicy := backoff.NewConstant(10 * time.Millisecond)
-		b, cancel := backoffPolicy.Start(ctx)
-		defer cancel()
+	p := backoff.Constant(
+		backoff.WithInterval(300*time.Millisecond),
+		backoff.WithMaxRetries(4),
+	)
+	c := p.Start(ctx)
 
-		seen := make(map[time.Time]struct{})
-		for backoff.Continue(b) {
-			// Record execution in millisecond granularity for testing
-			now := time.Now().Truncate(time.Millisecond)
-			if _, ok := seen[now]; !assert.False(t, ok, `should not fire in the same millisecond`) {
+	prev := time.Now()
+	var retries int
+	for backoff.Continue(c) {
+		t.Logf("%s backoff.Continue", time.Now())
+
+		// make sure that we've executed this in more or less 300ms
+		retries++
+		if retries > 1 {
+			d := time.Since(prev)
+			if !assert.True(t, 350*time.Millisecond >= d && d >= 250*time.Millisecond, `timing is about 300ms (%s)`, d) {
 				return
 			}
-			seen[now] = struct{}{}
+		}
+		prev = time.Now()
+	}
+
+	// initial + 4 retries = 5
+	if !assert.Equal(t, 5, retries, `should have retried 5 times`) {
+		return
+	}
+}
+
+func isInErrorRange(expected, observed, margin time.Duration) bool {
+	return expected+margin > observed &&
+		observed > expected-margin
+}
+
+func TestExponential(t *testing.T) {
+	t.Run("Interval generator", func(t *testing.T) {
+		expected := []float64{
+			0.5, 0.75, 1.125, 1.6875, 2.53125, 3.796875,
+		}
+		ig := backoff.NewExponentialInterval()
+		for i := 0; i < len(expected); i++ {
+			if !assert.Equal(t, time.Duration(float64(time.Second)*expected[i]), ig.Next(), `interval for iteration %d`, i) {
+				return
+			}
 		}
 	})
-	t.Run("exponential backoff", func(t *testing.T) {
-		backoffPolicy := backoff.NewExponential(
-			backoff.WithInterval(10*time.Millisecond),
-			backoff.WithJitterFactor(0),
-			backoff.WithFactor(2),
+	t.Run("Jitter", func(t *testing.T) {
+		ig := backoff.NewExponentialInterval(
+			backoff.WithMaxInterval(time.Second),
+			backoff.WithJitterFactor(0.02),
 		)
 
-		b, cancel := backoffPolicy.Start(ctx)
-		defer cancel()
+		testcases := []struct {
+			Base time.Duration
+		}{
+			{Base: 500 * time.Millisecond},
+			{Base: 750 * time.Millisecond},
+			{Base: time.Second},
+		}
 
-		seen := make(map[time.Time]struct{})
-		for backoff.Continue(b) {
-			// Record execution in millisecond granularity for testing
-			now := time.Now().Truncate(time.Millisecond)
-			if _, ok := seen[now]; !assert.False(t, ok, `should not fire in the same millisecond`) {
+		for i := 0; i < 10; i++ {
+			dur := ig.Next()
+			var base time.Duration
+			if i > 2 {
+				base = testcases[2].Base
+			} else {
+				base = testcases[i].Base
+			}
+
+			min := int64(float64(base) * 0.98)
+			max := int64(float64(base) * 1.05) // should be 1.02, but give it a bit of leeway
+			t.Logf("max = %s, min = %s", time.Duration(max), time.Duration(min))
+			if !assert.GreaterOrEqual(t, int64(dur), min, "value should be greater than minimum") {
 				return
 			}
-			seen[now] = struct{}{}
+			if !assert.GreaterOrEqual(t, max, int64(dur), "value should be less than maximum") {
+				return
+			}
+
+		}
+	})
+	t.Run("Back off, no jitter", func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+		defer cancel()
+
+		// These values are truncated to milliseconds, to make comparisons easier
+		expected := []float64{
+			0, 0.5, 0.7, 1.1, 1.6, 2.5, 3.7,
+		}
+		p := backoff.Exponential()
+		count := 0
+		prev := time.Now()
+		b := p.Start(ctx)
+		for backoff.Continue(b) {
+			now := time.Now()
+			d := now.Sub(prev)
+			d = d - d%(100*time.Millisecond)
+
+			// Allow a flux of 100ms
+			expectedDuration := time.Duration(expected[count] * float64(time.Second))
+			if !assert.True(t, isInErrorRange(expectedDuration, d, 100*time.Millisecond), `observed duration (%s) is withing error range`, d) {
+				return
+			}
+			count++
+			if count == len(expected)-1 {
+				break
+			}
+			prev = now
 		}
 	})
 }
 
-func TestRetryForever(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
+func TestConcurrent(t *testing.T) {
+	if testing.Short() {
+		t.SkipNow()
+	}
+	t.Parallel()
+
+	// Does not test anything useful, just puts it under stress
+	testcases := []struct {
+		Policy backoff.Policy
+		Name   string
+	}{
+		{Name: "Null", Policy: backoff.Null()},
+		{Name: "Exponential", Policy: backoff.Exponential(backoff.WithMultiplier(0.01), backoff.WithMinInterval(time.Millisecond))},
+	}
+
+	const max = 50
+	for _, tc := range testcases {
+		tc := tc
+
+		t.Run(tc.Name, func(t *testing.T) {
+			t.Parallel()
+			var wg sync.WaitGroup
+			wg.Add(max)
+			for i := 0; i < max; i++ {
+				go func(wg *sync.WaitGroup, b backoff.Policy) {
+					defer wg.Done()
+					ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+					defer cancel()
+					c := b.Start(ctx)
+					for backoff.Continue(c) {
+						fmt.Fprintf(ioutil.Discard, `Writing to the ether...`)
+					}
+				}(&wg, tc.Policy)
+			}
+			wg.Wait()
+		})
+	}
+}
+
+func TestConstantWithJitter(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
 
-	done := make(chan struct{})
-	count := 0
-	go func() {
-		defer close(done)
-		policy := backoff.NewExponential(
-			backoff.WithRetryForever(),
-			backoff.WithInterval(time.Millisecond),
-		)
-		b, cancel := policy.Start(ctx)
-		defer cancel()
+	p := backoff.Constant(
+		backoff.WithInterval(300*time.Millisecond),
+		backoff.WithJitterFactor(0.50),
+		backoff.WithMaxRetries(999),
+	)
+	c := p.Start(ctx)
 
-		tick := time.NewTicker(time.Millisecond)
-		for backoff.Continue(b) {
-			count++
-			select {
-			case <-ctx.Done():
-				return
-			case <-tick.C:
+	prev := time.Now()
+	var retries int
+	for backoff.Continue(c) {
+		t.Logf("%s backoff.Continue", time.Now())
+
+		// make sure that we've executed this in more or less 300ms ± 50%
+		retries++
+		if retries > 1 {
+			d := time.Since(prev)
+
+			// if the duration becomes out of the range values by jitter, it breaks loop
+			if (150*time.Millisecond <= d && d < 250*time.Millisecond) ||
+				(350*time.Millisecond < d && d <= 450*time.Millisecond) {
+				break
 			}
 		}
+		prev = time.Now()
+	}
 
-		// detect if we're really done, or just bailed out of loop by max attempts
-		select {
-		case <-ctx.Done():
-		default:
-			// if we got here, it means that we did not retry forever
-			t.Errorf("Bailed out of backoff.Continue(b) after %d attempts", count)
-		}
-	}()
-
-	timer := time.NewTimer(time.Second)
-	<-timer.C
-
-	cancel()
-
-	// wait for max 1 second for the goroutine to come back
-	timeout := time.NewTimer(time.Second)
-	select {
-	case <-done:
-		if assert.True(t, count >= 10, "we should have executed more than 10 times, but executed %d", count) {
-			return
-		}
-	case <-timeout.C:
-		t.Error(`goroutine did not come back in time`)
+	// initial + 999 retries = 1000
+	if !assert.NotEqual(t, 1000, retries, `should not have retried 1000 times; if the # of retries reaches 1000, probably jitter doesn't work'`) {
+		return
 	}
 }
