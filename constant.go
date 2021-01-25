@@ -5,48 +5,62 @@ import (
 	"time"
 )
 
-func NewConstant(delay time.Duration, options ...Option) *Constant {
-	maxRetries := defaultMaxRetries
-	var maxElapsedTime time.Duration
-	for _, o := range options {
-		switch o.Name() {
-		case optkeyMaxElapsedTime:
-			maxElapsedTime = o.Value().(time.Duration)
-		case optkeyMaxRetries:
-			maxRetries = o.Value().(int)
+type ConstantInterval struct {
+	interval time.Duration
+	jitter   jitter
+}
+
+func NewConstantInterval(options ...ConstantOption) *ConstantInterval {
+	jitterFactor := 0.0
+	interval := time.Minute
+	var rng Random
+
+	for _, option := range options {
+		switch option.Ident() {
+		case identInterval{}:
+			interval = option.Value().(time.Duration)
+		case identJitterFactor{}:
+			jitterFactor = option.Value().(float64)
+		case identRNG{}:
+			rng = option.Value().(Random)
 		}
 	}
 
-	return &Constant{
-		delay:          delay,
-		maxElapsedTime: maxElapsedTime,
-		maxRetries:     maxRetries,
+	return &ConstantInterval{
+		interval: interval,
+		jitter:   newJitter(jitterFactor, rng),
 	}
 }
 
-func (p *Constant) Start(ctx context.Context) (Backoff, CancelFunc) {
-	b := &constantBackoff{
-		baseBackoff: newBaseBackoff(ctx, p.maxRetries, p.maxElapsedTime),
-		policy:      p,
-	}
-	b.baseBackoff.Start(ctx)
-
-	b.mu.Lock()
-	b.current = 1 // record that we've already queued the first fake event
-	go b.fire()   // the first call
-	b.mu.Unlock()
-
-	return b, CancelFunc(b.cancelLocked)
+func (g *ConstantInterval) Next() time.Duration {
+	return time.Duration(g.jitter.apply(float64(g.interval)))
 }
 
-func (b *constantBackoff) Next() <-chan struct{} {
-	b.mu.Lock()
-	defer b.mu.Unlock()
+type ConstantPolicy struct {
+	cOptions  []ControllerOption
+	igOptions []ConstantOption
+}
 
-	// Only queue a request to fire if the previous request
-	// has already been processed
-	if b.current == nil {
-		b.current = time.AfterFunc(b.policy.delay, b.fire)
+func NewConstantPolicy(options ...Option) *ConstantPolicy {
+	var cOptions []ControllerOption
+	var igOptions []ConstantOption
+
+	for _, option := range options {
+		switch opt := option.(type) {
+		case ControllerOption:
+			cOptions = append(cOptions, opt)
+		default:
+			igOptions = append(igOptions, opt.(ConstantOption))
+		}
 	}
-	return b.next
+
+	return &ConstantPolicy{
+		cOptions:  cOptions,
+		igOptions: igOptions,
+	}
+}
+
+func (p *ConstantPolicy) Start(ctx context.Context) Controller {
+	ig := NewConstantInterval(p.igOptions...)
+	return newController(ctx, ig, p.cOptions...)
 }

@@ -1,74 +1,48 @@
 package backoff
 
 import (
-	"context"
+	"math/rand"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func TestExponential(t *testing.T) {
-	p := NewExponential(
-		WithInterval(time.Second),
-		WithJitterFactor(0),
-		WithMaxInterval(120*time.Second),
-	)
-	b, cancel := p.Start(context.Background())
-	defer cancel()
+func TestNewExponentialIntervalWithDefaultOptions(t *testing.T) {
+	p := NewExponentialInterval()
 
-	var durs = []time.Duration{
-		time.Second,
-		2 * time.Second,
-		4 * time.Second,
-		8 * time.Second,
-		16 * time.Second,
-		32 * time.Second,
-		64 * time.Second,
-		120 * time.Second,
-		120 * time.Second,
-		120 * time.Second,
-	}
-	for i := 0; i < 10; i++ {
-		dur := b.(*exponentialBackoff).delayForAttempt(float64(i))
-		if !assert.Equal(t, dur, durs[i], `delays should match`) {
-			return
-		}
-	}
+	assert.Equal(t, defaultMaxInterval, p.maxInterval)
+	assert.Equal(t, defaultMinInterval, p.minInterval)
+	assert.Equal(t, defaultMultiplier, p.multiplier)
+	assert.Equal(t, &nopJitter{}, p.jitter)
 }
 
-func TestExponentialWithJitter(t *testing.T) {
-	const jitter = 0.2
-	p := NewExponential(
-		WithInterval(time.Second),
+func TestNewExponentialIntervalWithCustomOptions(t *testing.T) {
+	jitter := 0.99
+	maxInterval := 24 * time.Hour
+	minInterval := time.Nanosecond
+	multiplier := float64(99999)
+	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
+	p := NewExponentialInterval(
 		WithJitterFactor(jitter),
-		WithMaxInterval(time.Hour),
+		WithMaxInterval(maxInterval),
+		WithMinInterval(minInterval),
+		WithMultiplier(multiplier),
+		WithRNG(rng),
 	)
-	b, cancel := p.Start(context.Background())
-	defer cancel()
 
-	var durs = []time.Duration{
-		time.Second,
-		2 * time.Second,
-		4 * time.Second,
-		8 * time.Second,
-		16 * time.Second,
-		32 * time.Second,
-		64 * time.Second,
-		128 * time.Second,
-		256 * time.Second,
-		512 * time.Second,
-	}
-	for i := 0; i < 10; i++ {
-		dur := b.(*exponentialBackoff).delayForAttempt(float64(i))
+	assert.Equal(t, maxInterval, time.Duration(p.maxInterval))
+	assert.Equal(t, minInterval, time.Duration(p.minInterval))
+	assert.Equal(t, multiplier, p.multiplier)
+	assert.Equal(t, newRandomJitter(jitter, rng), p.jitter)
+}
 
-		durf := float64(dur)
-		expectedf := float64(durs[i])
-		delta := expectedf * jitter
-		max := expectedf + delta
-		min := expectedf - delta
-		if !assert.True(t, min <= durf && max >= durf, `delays should be between %f and %f, got %f`, min, max, durf) {
-			return
-		}
-	}
+func TestNewExponentialIntervalWithOnlyJitterOptions(t *testing.T) {
+	jitter := 0.99
+	p := NewExponentialInterval(
+		WithJitterFactor(jitter),
+	)
+
+	generatedRandomJitter := p.jitter.(*randomJitter)
+	assert.Equal(t, newRandomJitter(jitter, generatedRandomJitter.rng), p.jitter)
 }
