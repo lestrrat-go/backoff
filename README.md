@@ -116,7 +116,7 @@ This is the most "common" of the backoffs. Intervals between calls are spaced ou
 ## I'm getting "package github.com/lestrrat-go/backoff/v2: no Go files in /go/src/github.com/lestrrat-go/backoff/v2"
 
 You are using Go in GOPATH mode, which was the way before [Go Modules](https://blog.golang.org/using-go-modules) were introduced in Go 1.11 (Aug 2018).
-GOPATH has slowly been phased out, and in Go 1.14 onwards, Go Modules pretty much Just Works.
+GOPATH has slowly been phased out, and in Go 1.14 onwards, Go Modules pretty much Just Work.
 Go 1.16 introduced more visible changes that forces users to be aware of the existance of go.mod files.
 
 The short answer when you you get the above error is: **Migrate to using Go Modules**.
@@ -138,7 +138,7 @@ cd myawesomeproject
 go mod init
 go mod tidy
 git add go.mod go.sum
-git commi -m "Add go.mod and go.sum"
+git commit -m "Add go.mod and go.sum"
 git push 
 ```
 
