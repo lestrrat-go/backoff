@@ -138,7 +138,7 @@ cd myawesomeproject
 go mod init
 go mod tidy
 git add go.mod go.sum
-git commit -m "Add go.mod and go.sum"
+git commit -m "Add go.mod and go.sum" -a
 git push 
 ```
 
