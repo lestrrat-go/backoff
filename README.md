@@ -12,7 +12,7 @@ For a longer discussion, [please read this article](https://medium.com/@lestrrat
 # IMPORT
 
 ```go
-import "github.com/lesrtrrat-go/backoff/v2"
+import "github.com/lestrrat-go/backoff/v2"
 ```
 
 # SYNOPSIS
