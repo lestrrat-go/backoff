@@ -62,8 +62,8 @@ func TestConstant(t *testing.T) {
 }
 
 func isInErrorRange(expected, observed, margin time.Duration) bool {
-	return expected+margin > observed &&
-		observed > expected-margin
+	return expected+margin >= observed &&
+		observed >= expected-margin
 }
 
 func TestExponential(t *testing.T) {
