@@ -31,7 +31,10 @@ func newNullController(ctx context.Context) *nullController {
 		next: make(chan struct{}), // NO BUFFER
 	}
 	go func(ch chan struct{}, cancel func()) {
-		ch <- struct{}{}
+		select {
+		case <-c.ctx.Done():
+		case ch <- struct{}{}:
+		}
 		close(ch)
 		cancel()
 	}(c.next, cancel)
