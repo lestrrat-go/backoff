@@ -76,7 +76,7 @@ func (*commonOption) exponentialOption() {}
 // of each policy.
 //
 // This option can be passed to all policy constructors except for NullPolicy
-func WithMaxRetries(v int) ControllerOption {
+func WithMaxRetries(v int64) ControllerOption {
 	return &controllerOption{option.New(identMaxRetries{}, v)}
 }
 

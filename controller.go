@@ -10,22 +10,22 @@ type controller struct {
 	ctx        context.Context
 	cancel     func()
 	ig         IntervalGenerator
-	maxRetries int
+	maxRetries int64
 	mu         *sync.RWMutex
 	next       chan struct{} // user-facing channel
 	resetTimer chan time.Duration
-	retries    int
+	retries    int64
 	timer      *time.Timer
 }
 
 func newController(ctx context.Context, ig IntervalGenerator, options ...ControllerOption) *controller {
 	cctx, cancel := context.WithCancel(ctx) // DO NOT fire this cancel here
 
-	maxRetries := 10
+	maxRetries := int64(10)
 	for _, option := range options {
 		switch option.Ident() {
 		case identMaxRetries{}:
-			maxRetries = option.Value().(int)
+			maxRetries = option.Value().(int64)
 		}
 	}
 
